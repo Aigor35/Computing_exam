@@ -7,11 +7,9 @@ import numpy
 
 
 
-plotter_1 = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
-                    size=(1200, 900))
+face = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
-face = Mesh('Models/STL_Head.stl')
-vedo.show(face, axes=True)
+
 
 cap = cv.VideoCapture(0)
 
@@ -20,6 +18,12 @@ tracker = cv.legacy.TrackerCSRT_create()
 success, img = cap.read()
 bounding_box = cv.selectROI("Tracking", img, False)
 tracker.init(img, bounding_box)
+
+plotter_1 = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
+                    size=(img.shape[1], img.shape[0]),)
+
+vedo.show(face, axes=1)
+
 
 
 def drawBox(img, bounding_box):
@@ -31,6 +35,8 @@ def drawBox(img, bounding_box):
 while True:
     timer = cv.getTickCount()
     success, img = cap.read()
+    print(img.shape)
+
 
     success, bounding_box = tracker.update(img)
     if success:

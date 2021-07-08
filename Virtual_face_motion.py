@@ -20,7 +20,7 @@ faceCascade = cv.CascadeClassifier(cv.data.haarcascades + "haarcascade_frontalfa
 
 
 
-
+# Add a way to select only the biggest face
 def getFaceData(img):
     faceWidth = 0
     imgGrey = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
@@ -57,28 +57,36 @@ def moveFace(img,boundingBoxOld,boundingBoxNew,distanceOld,distanceNew,pixelsToC
     face.addPos((x_new-x_old)*pixelsToCmRatio,(-y_new+y_old)*pixelsToCmRatio,-(z_new-z_old))
 
 
+def setAnchors(event,x,y,flags,param):
+    if event == cv.EVENT_LBUTTONDOWN:
+        cv.circle(img,(x,y),3,(255,0,0),-1)
+        anchors.append([x,y])
+
 
 
 
 cap = cv.VideoCapture(0)
-referenceImage = cv.imread('Models/Reference_image.png')
-tracker = cv.legacy.TrackerCSRT_create()
-
+#referenceImage = cv.imread('Models/Reference_image.png')
+#tracker = cv.legacy.TrackerCSRT_create()
+anchors = []
 
 success, img = cap.read()
-referenceImage = cv.resize(referenceImage,(img.shape[1],img.shape[0]))
+#referenceImage = cv.resize(referenceImage,(img.shape[1],img.shape[0]))
 
-referenceImageFaceWidth = getFaceData(referenceImage)
+# Maybe it would be better to just measure the pixel width using paint
+#referenceImageFaceWidth = getFaceData(referenceImage)
 #boundingBoxReference = cv.selectROI("Face width",referenceImage,False)
 #referenceImageFaceWidth = int(boundingBoxReference[2])-int(boundingBoxReference[0])
-focalLength = getFocalLength(referenceDistance,referenceFaceWidth,referenceImageFaceWidth)
+#focalLength = getFocalLength(referenceDistance,referenceFaceWidth,referenceImageFaceWidth)
 
-
+"""
 boundingBox = cv.selectROI("Tracking", img, False)
 tracker.init(img, boundingBox)
 
+
+
 plotter_1 = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
-                    size=(img.shape[1], img.shape[0]),)
+                    size=(img.shape[1], img.shape[0]),interactive=False)
 vedo.show(faceMesh, axes=1)
 
 pixelsToCmRatio = referenceFaceWidth/referenceImageFaceWidth
@@ -86,12 +94,13 @@ pixelsToCmRatio = referenceFaceWidth/referenceImageFaceWidth
 distanceOld = referenceDistance
 distanceNew = referenceDistance
 count = 0
+"""
 
 while True:
     timer = cv.getTickCount()
     success, img = cap.read()
 
-
+    """
     boundingBoxOld = deepcopy(boundingBox)
     success, boundingBox = tracker.update(img)
 
@@ -100,13 +109,9 @@ while True:
         if count == 0:
             distanceOld = getDistance(focalLength, referenceFaceWidth, faceWidth)
             distanceNew = distanceOld
-            #print("count = 0 executed")
             count += 1
         else:
             distanceNew = getDistance(focalLength, referenceFaceWidth, faceWidth)
-            #print("count different from zero executed")
-            #print("Distance New = ",distanceNew)
-            #print("Distance Old = ", distanceOld)
 
     if success:
         boundingBoxNew = deepcopy(boundingBox)
@@ -120,11 +125,13 @@ while True:
     cv.putText(img, str(int(fps)), (75, 50), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     cv.imshow("Tracking", img)
     vedo.show(faceMesh, axes=1,interactive=False)
-    #print("count",count)
-    #print("Current distance",distanceNew)
-    print(faceMesh.pos())
-    distanceOld = distanceNew
 
+    #print(faceMesh.pos())
+    distanceOld = distanceNew
+    """
+    cv.imshow("Anchors",img)
+    cv.setMouseCallback("Anchors",setAnchors)
+    print(anchors)
     if cv.waitKey(1) & 0xff == ord('q'):
         break
 

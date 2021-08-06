@@ -2,13 +2,16 @@ import numpy as np
 import cv2 as cv
 
 
-def selectPoints(event,x,y,flags,params):
+def selectOrResetPoints(event, x, y, flags, params):
     global point, pointSelected, oldPoints
     if event == cv.EVENT_LBUTTONDOWN:
-        point = (x,y)
+        point = (x, y)
         pointSelected = True
-        oldPoints = np.append(oldPoints,[[np.float32(x),np.float32(y)]])
+        oldPoints = np.append(oldPoints, [[np.float32(x), np.float32(y)]])
         oldPoints = np.reshape(oldPoints, (int(len(oldPoints.T)/2), 2))
+    if event == cv.EVENT_RBUTTONDOWN:
+        oldPoints = np.array([[]], dtype=np.float32)
+        pointSelected = False
 
 
 cap = cv.VideoCapture(0)
@@ -27,7 +30,7 @@ _, oldFrame = cap.read()
 oldFrameGray = cv.cvtColor(oldFrame,cv.COLOR_BGR2GRAY)
 
 cv.namedWindow("Frame")
-cv.setMouseCallback("Frame",selectPoints)
+cv.setMouseCallback("Frame",selectOrResetPoints)
 
 
 while True:
@@ -42,6 +45,11 @@ while True:
 
         for point in oldPoints:
             cv.circle(newFrame, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
+
+        rectangle = cv.minAreaRect(oldPoints)
+        box = cv.boxPoints(rectangle)
+        box = np.intp(box)  # np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
+        cv.drawContours(newFrame, [box], 0, (0,255,0))
 
     cv.imshow("Frame", newFrame)
 

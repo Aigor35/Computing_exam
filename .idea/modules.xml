@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../Anchoring_try/.idea/Anchoring_try.iml" filepath="$PROJECT_DIR$/../Anchoring_try/.idea/Anchoring_try.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/Computing_exam.iml" filepath="$PROJECT_DIR$/.idea/Computing_exam.iml" />
     </modules>
   </component>

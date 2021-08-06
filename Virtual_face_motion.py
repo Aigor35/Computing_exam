@@ -2,33 +2,39 @@ import vedo
 from vedo import Plotter, Mesh
 import cv2 as cv
 from copy import deepcopy
-import numpy
+import numpy as np
 
 
 
 
+def manageTrackedPoints(event, x, y, flags, params):
+    global point, pointSelected, oldPoints,faceMesh
+    if event == cv.EVENT_LBUTTONDOWN:
+        point = (x, y)
+        pointSelected = True
+        oldPoints = np.append(oldPoints, [[np.float32(x), np.float32(y)]])
+        oldPoints = np.reshape(oldPoints, (int(len(oldPoints.T)/2), 2))
+    if event == cv.EVENT_RBUTTONDOWN:
+        oldPoints = np.array([[]], dtype=np.float32)
+        pointSelected = False
+        faceMesh.pos(0,0,0)
 
-faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
-# Width of my face in real world (measured)
-referenceFaceWidth = 14 #cm
-# Distance from the camera in the reference image (measured)
-referenceDistance = 58 #cm
-faceCascade = cv.CascadeClassifier(cv.data.haarcascades + "haarcascade_frontalface_default.xml")
+def findCentroid(arrayOfPoints):
+    mean = np.mean(arrayOfPoints,axis=0)
+    return mean
 
 
+def moveFace(oldPoints,newPoints,rectangle):
+    global faceMesh
+    oldCentroid = findCentroid(oldPoints)
+    newCentroid = findCentroid(newPoints)
+    faceMesh.addPos(int(newCentroid[0]-oldCentroid[0]),int(-newCentroid[1]+oldCentroid[1]))
+
+    print(faceMesh.pos())
 
 
 
-# Add a way to select only the biggest face
-def getFaceData(img):
-    faceWidth = 0
-    imgGrey = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
-    facesDetected = faceCascade.detectMultiScale(imgGrey,1.3,5)
-    for (x,y,w,h) in facesDetected:
-        #cv.rectangle(img,(x,y),(x+w,y+h),(0,0,255),1)
-        faceWidth = w
-    return faceWidth
 
 
 def getFocalLength(referenceDistance,referenceFaceWidth,faceWidthInFrame):
@@ -43,103 +49,66 @@ def getDistance(focalLength,referenceFaceWidth,faceWidthInFrame):
 
 
 
-def drawBox(img, boundingBox):
-    x, y, w, h = int(boundingBox[0]), int(boundingBox[1]), int(boundingBox[2]), int(boundingBox[3])
-    cv.rectangle(img, (x, y), ((x + w), (y + h)), (255, 0, 255), 3, 1)
-    cv.putText(img, "Tracking", (75, 75), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
-
-def moveFace(img,boundingBoxOld,boundingBoxNew,distanceOld,distanceNew,pixelsToCmRatio,face):
-    x_old, y_old, w_old, h_old = int(boundingBoxOld[0]), int(boundingBoxOld[1]), int(boundingBoxOld[2]), int(boundingBoxOld[3])
-    x_new, y_new, w_new, h_new = int(boundingBoxNew[0]), int(boundingBoxNew[1]), int(boundingBoxNew[2]), int(boundingBoxNew[3])
-    z_old = int(distanceOld)
-    z_new = int(distanceNew)
-    face.addPos((x_new-x_old)*pixelsToCmRatio,(-y_new+y_old)*pixelsToCmRatio,-(z_new-z_old))
-
-
-def setAnchors(event,x,y,flags,param):
-    if event == cv.EVENT_LBUTTONDOWN:
-        cv.circle(img,(x,y),3,(255,0,0),-1)
-        anchors.append([x,y])
-
-
 
 
 cap = cv.VideoCapture(0)
-#referenceImage = cv.imread('Models/Reference_image.png')
-#tracker = cv.legacy.TrackerCSRT_create()
-anchors = []
 
-success, img = cap.read()
-#referenceImage = cv.resize(referenceImage,(img.shape[1],img.shape[0]))
+faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
-# Maybe it would be better to just measure the pixel width using paint
-#referenceImageFaceWidth = getFaceData(referenceImage)
-#boundingBoxReference = cv.selectROI("Face width",referenceImage,False)
-#referenceImageFaceWidth = int(boundingBoxReference[2])-int(boundingBoxReference[0])
-#focalLength = getFocalLength(referenceDistance,referenceFaceWidth,referenceImageFaceWidth)
+lkParams = dict(winSize = (10,10),
+                maxLevel = 4, # It's the pyramid level; each level denotes a window whose size is half of the previous one.
+                criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
-"""
-boundingBox = cv.selectROI("Tracking", img, False)
-tracker.init(img, boundingBox)
+pointSelected = False
+
+oldPoints = np.array([[]],dtype=np.float32)
 
 
+_, oldFrame = cap.read()
+oldFrame = cv.flip(oldFrame,1)
+oldFrameGray = cv.cvtColor(oldFrame,cv.COLOR_BGR2GRAY)
 
-plotter_1 = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
-                    size=(img.shape[1], img.shape[0]),interactive=False)
-vedo.show(faceMesh, axes=1)
+plotter = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
+                    size=(oldFrame.shape[1], oldFrame.shape[0]),interactive=False)
 
-pixelsToCmRatio = referenceFaceWidth/referenceImageFaceWidth
+cv.namedWindow("Frame")
+cv.setMouseCallback("Frame",manageTrackedPoints)
+vedo.show(faceMesh,axes=1)
 
-distanceOld = referenceDistance
-distanceNew = referenceDistance
-count = 0
-"""
 
 while True:
-    timer = cv.getTickCount()
-    success, img = cap.read()
 
-    """
-    boundingBoxOld = deepcopy(boundingBox)
-    success, boundingBox = tracker.update(img)
+    _, newFrame = cap.read()
+    newFrame = cv.flip(newFrame,1)
+    newFrameGray = cv.cvtColor(newFrame,cv.COLOR_BGR2GRAY)
 
-    faceWidth = getFaceData(img)
-    if faceWidth != 0:
-        if count == 0:
-            distanceOld = getDistance(focalLength, referenceFaceWidth, faceWidth)
-            distanceNew = distanceOld
-            count += 1
-        else:
-            distanceNew = getDistance(focalLength, referenceFaceWidth, faceWidth)
+    if pointSelected == True:
+        newPoints, status, error = cv.calcOpticalFlowPyrLK(oldFrameGray,newFrameGray,oldPoints,None,**lkParams)
 
-    if success:
-        boundingBoxNew = deepcopy(boundingBox)
-        drawBox(img, boundingBox)
-        moveFace(img, boundingBoxOld, boundingBoxNew, distanceOld, distanceNew, pixelsToCmRatio, faceMesh)
-    else:
-        cv.putText(img, "Object lost", (75, 75), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        for point in newPoints:
+            cv.circle(newFrame, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
 
-    fps = cv.getTickFrequency() / (cv.getTickCount() - timer)
+        rectangle = cv.minAreaRect(newPoints)
+        box = cv.boxPoints(rectangle)
+        box = np.intp(box)  # np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
+        cv.drawContours(newFrame, [box], 0, (0,255,0))
+        moveFace(oldPoints, newPoints, rectangle)
 
-    cv.putText(img, str(int(fps)), (75, 50), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-    cv.imshow("Tracking", img)
-    vedo.show(faceMesh, axes=1,interactive=False)
+        oldPoints = newPoints
+        oldFrameGray = newFrameGray.copy()
 
-    #print(faceMesh.pos())
-    distanceOld = distanceNew
-    """
-    cv.imshow("Anchors",img)
-    cv.setMouseCallback("Anchors",setAnchors)
-    print(anchors)
+    cv.imshow("Frame", newFrame)
+    vedo.show(faceMesh, axes=1)
+
     if cv.waitKey(1) & 0xff == ord('q'):
         break
 
 
-vedo.plotter.closePlotter()
-vedo.closeWindow()
 cap.release()
 cv.destroyAllWindows()
+vedo.plotter.closePlotter()
+vedo.closeWindow()
+
 
 
 

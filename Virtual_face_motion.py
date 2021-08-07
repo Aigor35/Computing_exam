@@ -17,7 +17,7 @@ def manageTrackedPoints(event, x, y, flags, params):
     if event == cv.EVENT_RBUTTONDOWN:
         oldPoints = np.array([[]], dtype=np.float32)
         pointSelected = False
-        faceMesh.pos(0,0,0)
+        faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
 
 def findCentroid(arrayOfPoints):
@@ -25,16 +25,21 @@ def findCentroid(arrayOfPoints):
     return mean
 
 
-def moveFace(oldPoints,newPoints,rectangle):
+def moveFace(oldPoints,newPoints):
     global faceMesh
     oldCentroid = findCentroid(oldPoints)
     newCentroid = findCentroid(newPoints)
     faceMesh.addPos(int(newCentroid[0]-oldCentroid[0]),int(-newCentroid[1]+oldCentroid[1]))
-
     print(faceMesh.pos())
 
-
-
+# I think I can use faceMesh.rotateX().rotateY().rotateZ()
+# I'm not using radiants, so rad = False (it's the default value)
+def rotateFace(oldRectangle,newRectangle):
+    global faceMesh
+    detectedAngleDifference = -newRectangle[-1]+oldRectangle[-1]
+    if abs(detectedAngleDifference) > 60:
+        detectedAngleDifference = 0
+    faceMesh.rotateY(detectedAngleDifference,locally=True)
 
 
 def getFocalLength(referenceDistance,referenceFaceWidth,faceWidthInFrame):
@@ -45,7 +50,6 @@ def getFocalLength(referenceDistance,referenceFaceWidth,faceWidthInFrame):
 def getDistance(focalLength,referenceFaceWidth,faceWidthInFrame):
     distance = (referenceFaceWidth*focalLength)/faceWidthInFrame
     return distance
-
 
 
 
@@ -88,11 +92,16 @@ while True:
         for point in newPoints:
             cv.circle(newFrame, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
 
-        rectangle = cv.minAreaRect(newPoints)
-        box = cv.boxPoints(rectangle)
-        box = np.intp(box)  # np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
-        cv.drawContours(newFrame, [box], 0, (0,255,0))
-        moveFace(oldPoints, newPoints, rectangle)
+        oldRectangle = cv.minAreaRect(oldPoints)
+        newRectangle = cv.minAreaRect(newPoints)
+
+        newBox = cv.boxPoints(newRectangle)
+        newBox = np.intp(newBox)  # np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
+        cv.drawContours(newFrame, [newBox], 0, (0, 255, 0))
+
+        moveFace(oldPoints, newPoints)
+        if len(newPoints)>3:
+            rotateFace(oldRectangle,newRectangle)
 
         oldPoints = newPoints
         oldFrameGray = newFrameGray.copy()

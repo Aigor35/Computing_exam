@@ -20,16 +20,38 @@ def manageTrackedPoints(event, x, y, flags, params):
         faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
 
-def findCentroid(arrayOfPoints):
-    mean = np.mean(arrayOfPoints,axis=0)
-    return mean
+"""
+# refDistance and refLength are in cm, refDetectedLength is in pixels
+def getFocalLength(refDistance,refLength,refDetectedLength):
+    focalLength = refDistance*(refDetectedLength/refLength)
+    return focalLength
+
+# refLength is in cm, focalLength and detectedLength are in pixels
+def getDistance(focalLength,refLength,detectedLength):
+    distance = refLength*(focalLength/detectedLength)
+    return distance
+"""
+
+
+
+def getFocalLength(refDistance,refArea,refDetectedArea):
+    return refDistance*np.sqrt(refDetectedArea/refArea)
+
+
+def getDistance(focalLength,refArea,boxPoints):
+    length = np.sqrt((boxPoints[0,0]-boxPoints[-1,0])**2+(boxPoints[0,1]-boxPoints[-1,1])**2)
+    height = np.sqrt((boxPoints[0,0]-boxPoints[1,0])**2+(boxPoints[0,1]-boxPoints[1,1])**2)
+    detectedArea = length*height
+    return focalLength*np.sqrt(refArea/detectedArea)
 
 
 def moveFace(oldPoints,newPoints):
-    global faceMesh
-    oldCentroid = findCentroid(oldPoints)
-    newCentroid = findCentroid(newPoints)
-    faceMesh.addPos(int(newCentroid[0]-oldCentroid[0]),int(-newCentroid[1]+oldCentroid[1]))
+    global faceMesh,focalLength,refArea
+    oldCentroid = np.mean(oldPoints,axis=0)
+    newCentroid = np.mean(newPoints,axis=0)
+    oldDistance = getDistance(focalLength,refArea,oldPoints)
+    newDistance = getDistance(focalLength,refArea,newPoints)
+    faceMesh.addPos(int(newCentroid[0]-oldCentroid[0]),int(-newCentroid[1]+oldCentroid[1]),-newDistance+oldDistance)
     print(faceMesh.pos())
 
 # I think I can use faceMesh.rotateX().rotateY().rotateZ()
@@ -40,17 +62,6 @@ def rotateFace(oldRectangle,newRectangle):
     if abs(detectedAngleDifference) > 60:
         detectedAngleDifference = 0
     faceMesh.rotateY(detectedAngleDifference,locally=True)
-
-
-def getFocalLength(referenceDistance,referenceFaceWidth,faceWidthInFrame):
-    focalLength = (faceWidthInFrame*referenceDistance)/referenceFaceWidth
-    return focalLength
-
-
-def getDistance(focalLength,referenceFaceWidth,faceWidthInFrame):
-    distance = (referenceFaceWidth*focalLength)/faceWidthInFrame
-    return distance
-
 
 
 
@@ -80,6 +91,19 @@ cv.setMouseCallback("Frame",manageTrackedPoints)
 vedo.show(faceMesh,axes=1)
 
 
+# To be changed
+refDistance = 29. #cm
+refLength = 6. #cm
+refHeight = 7. #cm
+refDetectedLength = 145.4 #pixels
+refDetectedHeight = 161.3 #pixels
+
+refArea = refLength*refHeight
+refDetectedArea = refDetectedLength*refDetectedHeight
+
+focalLength = getFocalLength(refDistance,refArea,refDetectedArea)
+
+
 while True:
 
     _, newFrame = cap.read()
@@ -99,8 +123,8 @@ while True:
         newBox = np.intp(newBox)  # np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
         cv.drawContours(newFrame, [newBox], 0, (0, 255, 0))
 
-        moveFace(oldPoints, newPoints)
         if len(newPoints)>3:
+            moveFace(oldPoints, newPoints)
             rotateFace(oldRectangle,newRectangle)
 
         oldPoints = newPoints

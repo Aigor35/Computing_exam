@@ -7,6 +7,7 @@ import numpy as np
 
 # TO DO: Aggiungere gestione bordi
 # TO DO: Migliorare l'acquisizione del primo punto
+# TO DO: MOVE THE CAME INSTEAD OF THE FACE FOR THE Z AXIS MOVEMENT
 
 
 def manageTrackedPoints(event, x, y, flags, params):
@@ -35,6 +36,7 @@ def getDistance(focalLength,refLength,detectedLength):
     return distance
 """
 
+acceptedTypes = (int,float,np.float32,np.float64)
 
 
 def getFocalLength(refDistance,refArea,refDetectedArea):
@@ -46,18 +48,22 @@ def getFocalLength(refDistance,refArea,refDetectedArea):
         raise ValueError("Nan cannot be a reference value.")
     if (np.isinf(refDistance) or np.isinf(refArea) or np.isinf(refDetectedArea)):
         raise ValueError("Infinity cannot be a reference value.")
-    if (not type(refDistance) in (int, float) or not type(refArea) in (int, float) or not type(refDetectedArea) in (int, float)):
+    if (not type(refDistance) in acceptedTypes or not type(refArea) in acceptedTypes or not type(refDetectedArea) in acceptedTypes):
         raise TypeError("Only numerical values are accepted as reference.")
     return refDistance*np.sqrt(refDetectedArea/refArea)
 
-
+# This returns np.float64
 def getDistance(focalLength,refArea,boxPoints):
+    if boxPoints.size == 0:
+        raise ValueError("An empty array of points was passed to the function.")
+    if np.isnan(np.sum(boxPoints)):
+        raise ValueError("One of the points passed to the function is nan or infinite.")
     length = np.sqrt((boxPoints[0,0]-boxPoints[-1,0])**2+(boxPoints[0,1]-boxPoints[-1,1])**2)
     height = np.sqrt((boxPoints[0,0]-boxPoints[1,0])**2+(boxPoints[0,1]-boxPoints[1,1])**2)
     detectedArea = length*height
     return focalLength*np.sqrt(refArea/detectedArea)
 
-# TO DO: MOVE THE CAME INSTEAD OF THE FACE FOR THE Z AXIS MOVEMENT
+
 def moveFace(oldPoints,newPoints):
     global faceMesh,focalLength,refArea
     oldCentroid = np.mean(oldPoints,axis=0)
@@ -99,7 +105,6 @@ if __name__ == "__main__":
 
     plotter = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
                         size=(oldFrame.shape[1], oldFrame.shape[0]),interactive=False)
-
     cv.namedWindow("Frame")
     cv.setMouseCallback("Frame",manageTrackedPoints)
     vedo.show(faceMesh,axes=1)

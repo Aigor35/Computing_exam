@@ -1,12 +1,12 @@
 import hypothesis.extra.numpy
 import pytest
+import vedo
 from hypothesis import given
 from hypothesis import strategies as st
-from hypothesis import example
-from hypothesis import assume
 from hypothesis import settings
 import Virtual_face_motion as vfm
 import numpy as np
+import cv2 as cv
 
 
 
@@ -187,7 +187,10 @@ def test_getDistance_isInverseOf_getFocalLength(refDistance, refArea, x, y, widt
        y = st.integers(min_value = 0, max_value = 480)
        )
 def test_getFocalLength_isInverseOf_getDistance(focalLength, refArea, x, y, width, height):
-    boxPoints = np.array([[x + width, y], [x, y], [x, y + height], [x + width, y + height]], dtype=np.float32)
+    boxPoints = np.array([[x + width, y],
+                          [x, y],
+                          [x, y + height],
+                          [x + width, y + height]], dtype=np.float32)
     refDetectedArea = width * height
     ratio = vfm.getCmOverPixelsRatio(refArea,boxPoints)
     assert np.round(focalLength, 3) == np.round(vfm.getFocalLength(vfm.getDistance(focalLength, ratio),
@@ -245,6 +248,7 @@ def test_manageTrackedPoints_dataStoredCorrectly(x, y):
     assert np.all(vfm.oldPoints == np.array([[x, y]], dtype = np.float32))
 
 
+
 @settings(deadline = 400, max_examples = 50)
 @given(x = st.integers(min_value = 0, max_value = 640),
        y = st.integers(min_value = 0, max_value = 480),
@@ -263,32 +267,341 @@ def test_manageTrackedPoints_dataResetCorrectly(x, y, xPos, yPos, zPos):
 
 
 
+def test_checkIfInsideBoundary_ifInisdeDoNothing():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                         [1., 1.],
+                         [1., 1.],
+                         [1., 1.]], dtype = np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == True
+    assert np.all(vfm.oldPoints == np.full((4, 2), 1., dtype=np.float32))
+    assert np.all(vfm.faceMesh.pos() == np.array([5., 5., 5.]))
+
+
+
+def test_checkIfInsideBoundary_ifPointIsFurtherThanMaxXBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[700., 1.],
+                          [1., 1.],
+                          [1., 1.],
+                          [1., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointIsFurtherThanMaxYBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                          [1., 1.],
+                          [1., 480.],
+                          [1., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointTouchesMaxXBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                          [1., 1.],
+                          [1., 1.],
+                          [640., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointTouchesMaxYBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 480.],
+                          [1., 1.],
+                          [1., 1.],
+                          [1., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointIsFurtherThanMinXBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                          [-30., 1.],
+                          [1., 1.],
+                          [1., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointIsFurtherThanMinYBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                          [1., 1.],
+                          [1., -30.],
+                          [1., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointTouchesMinXBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                          [1., 1.],
+                          [0., 1.],
+                          [1., 1.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_ifPointTouchesMinYBoundary_ResetData():
+    vfm.pointSelected = True
+    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
+    newPoints = np.array([[1., 1.],
+                          [1., 1.],
+                          [1., 1.],
+                          [1., 0.]], dtype=np.float32)
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == False
+    assert vfm.oldPoints.size == 0
+    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
+def test_checkIfInsideBoundary_giveNanValue_raiseValueError():
+    newPoints = np.array([[np.float("nan"), 1.],
+                          [1., 1.],
+                          [1., 1.],
+                          [1., 1.]], dtype=np.float32)
+    with pytest.raises(ValueError):
+        vfm.checkIfInsideBoundary(vfm.oldPoints, 640, 480)
+
+
+
+def test_checkIfInsideBoundary_giveInfiniteValue_raiseValueError():
+    newPoints = np.array([[1., 1.],
+                          [1., np.float("inf")],
+                          [1., 1.],
+                          [1., 1.]], dtype=np.float32)
+    with pytest.raises(ValueError):
+        vfm.checkIfInsideBoundary(vfm.oldPoints, 640, 480)
+
+
+
+@settings(deadline = 400, max_examples = 50)
+@given(xCoordinates = hypothesis.extra.numpy.arrays(int, 4,
+                                               elements = st.integers(min_value = 1, max_value= 639)),
+       yCoordinates = hypothesis.extra.numpy.arrays(int, 4,
+                                               elements = st.integers(min_value = 1, max_value= 479)))
+def test_checkIfInsideBoundary_generateBoxPointInsideBoundary_doNothing(xCoordinates, yCoordinates):
+    vfm.pointSelected = True
+    newPoints = np.array([], dtype = np.float32)
+    vfm.oldPoints = np.full((4, 2), 1., dtype = np.float32)
+    for i in range(0, 4):
+        newPoints = np.append(newPoints, xCoordinates[i])
+        newPoints = np.append(newPoints, yCoordinates[i])
+    newPoints = np.reshape(newPoints, (4, 2))
+    vfm.faceMesh.addPos(5., 5., 5.)
+    vfm.checkIfInsideBoundary(newPoints, 640, 480)
+    assert vfm.pointSelected == True
+    assert np.all(vfm.oldPoints == np.full((4, 2), 1., dtype = np.float32))
+    assert np.all(vfm.faceMesh.pos() == np.array([5., 5., 5.]))
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
+
 def test_moveFace_giveSpecificValues_returnSpecificResult():
     oldPoints = np.array([[3.5, 2.5], [2.5, 2.5], [2.5, 3.5], [3.5, 3.5]], dtype = np.float32)
     newPoints = np.array([[5., 3.], [3., 3.], [3., 5.], [5., 5.]], dtype = np.float32)
     focalLength = 0.5
     refArea = 16.
-    vfm.moveFace(oldPoints,newPoints,focalLength,refArea)
+    vfm.moveFace(oldPoints, newPoints, focalLength, refArea)
     assert np.all(vfm.faceMesh.pos() == np.array([[2., -2., 1.]]))
-
-
-def test_moveFace_giveNanValueToNewPoints_raiseValueError():
-    oldPoints = np.array([[2., 1.], [1., 1.], [1., 2.], [2., 2.]], dtype=np.float32)
-    newPoints = np.array([[np.float("nan"), 3.], [3., 3.], [3., 5.], [5., 5.]], dtype=np.float32)
-    focalLength = 1
-    refArea = 1
-    with pytest.raises(ValueError):
-        vfm.moveFace(oldPoints, newPoints, focalLength, refArea)
+    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
 
 
-def test_moveFace_giveInfValueToNewPoints_raiseValueError():
-    oldPoints = np.array([[2., 1.], [1., 1.], [1., 2.], [2., 2.]], dtype=np.float32)
-    newPoints = np.array([[5, 3.], [3., np.float("inf")], [3., 5.], [5., 5.]], dtype=np.float32)
-    focalLength = 1
-    refArea = 1
-    with pytest.raises(ValueError):
-        vfm.moveFace(oldPoints, newPoints, focalLength, refArea)
+def test_getRotationAngle_giveSpecificValues_rotateFaceWithSpecificAngle():
+    alpha = np.radians(20)
+    oldPoints = np.array([[100., 100.],
+                             [100., 200.],
+                             [150., 200.],
+                             [150., 100.]], dtype = np.float32)
+    rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                               [np.sin(alpha), np.cos(alpha)]], dtype = np.float32)
+    oldPoints -= 100
+    oldPoints = np.matmul(rotationMatrix, oldPoints.T)
+    newPoints = np.matmul(rotationMatrix, oldPoints)
+
+    oldPoints = oldPoints.T
+    oldPoints += 100
+    newPoints = newPoints.T
+    newPoints += 100
+
+    oldRectangle = cv.minAreaRect(oldPoints)
+    newRectangle = cv.minAreaRect(newPoints)
+    assert np.round(vfm.getRotationAngle(oldRectangle, newRectangle), 3) == -20
+
+
+
+def test_getRotationAngle_giveEqualRectangles_returnZero():
+    alpha = np.radians(20)
+    oldPoints = np.array([[100., 100.],
+                          [100., 200.],
+                          [150., 200.],
+                          [150., 100.]], dtype=np.float32)
+    oldRectangle = cv.minAreaRect(oldPoints)
+    newRectangle = cv.minAreaRect(oldPoints)
+    assert vfm.getRotationAngle(oldRectangle, newRectangle) == 0
+
+
+
+def test_getRotationAngle_giveRotationAngleGraterThan60Degrees_returnZero():
+    alpha = np.radians(10)
+    oldPoints = np.array([[100., 100.],
+                          [100., 200.],
+                          [150., 200.],
+                          [150., 100.]], dtype=np.float32)
+    rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                               [np.sin(alpha), np.cos(alpha)]], dtype=np.float32)
+    oldPoints -= 100
+    oldPoints = np.matmul(rotationMatrix, oldPoints.T)
+
+    alpha = np.radians(70)
+    rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                               [np.sin(alpha), np.cos(alpha)]], dtype=np.float32)
+
+    newPoints = np.matmul(rotationMatrix, oldPoints)
+
+    oldPoints = oldPoints.T
+    oldPoints += 100
+    newPoints = newPoints.T
+    newPoints += 100
+
+    oldRectangle = cv.minAreaRect(oldPoints)
+    newRectangle = cv.minAreaRect(newPoints)
+    assert vfm.getRotationAngle(oldRectangle, newRectangle) == 0
+
+
+@given(x = st.integers(min_value = 0, max_value = 640),
+       y = st.integers(min_value = 0, max_value = 480),
+       width = st.integers(min_value = 1, max_value = 640),
+       height = st.integers(min_value = 1, max_value = 640),
+       beta = st.integers(min_value = 1, max_value = 80))
+def test_getRotationAngle_rotateRectangleCounterclockwiseAndClockwiseBySameAngle_obtainAgainInitialRectangle(x, y, width,
+                                                                                                             height, beta):
+    setOfPoints = np.array([[x, y],
+                               [x, y + height],
+                               [x + width, y + height],
+                               [x + width, y]], dtype = np.float32)
+    alpha = np.radians(10)
+    rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                               [np.sin(alpha), np.cos(alpha)]], dtype=np.float32)
+    setOfPoints -= np.array([x, y], dtype = np.float32)
+    startingPoints = np.matmul(rotationMatrix, setOfPoints.T)
+
+    beta = np.radians(beta)
+    counterclockwiseRotationMatrix = np.array([[np.cos(beta), -np.sin(beta)],
+                                               [np.sin(beta), np.cos(beta)]], dtype=np.float32)
+    counterclockwiseRotatedPoints = np.matmul(counterclockwiseRotationMatrix, startingPoints)
+
+    clockwiseRotationMatrix = counterclockwiseRotationMatrix.T
+    clockwiseRotatedPoints = np.matmul(clockwiseRotationMatrix, counterclockwiseRotatedPoints)
+
+    startingPoints = startingPoints.T
+    startingPoints += np.array([x, y], dtype = np.float32)
+    startingPoints = np.around(startingPoints, 0)
+
+    clockwiseRotatedPoints = clockwiseRotatedPoints.T
+    clockwiseRotatedPoints += np.array([x, y], dtype = np.float32)
+    clockwiseRotatedPoints = np.around(clockwiseRotatedPoints, 0)
+
+    assert np.all(startingPoints == clockwiseRotatedPoints)
+
+
+
+@given(x = st.integers(min_value = 0, max_value = 640),
+       y = st.integers(min_value = 0, max_value = 480),
+       width = st.integers(min_value = 1, max_value = 640),
+       height = st.integers(min_value = 1, max_value = 640),
+       beta = st.integers(min_value = 1, max_value = 80))
+def test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle_obtainAgainInitialRectangle(x, y, width,
+                                                                                                             height, beta):
+    setOfPoints = np.array([[x, y],
+                               [x, y + height],
+                               [x + width, y + height],
+                               [x + width, y]], dtype = np.float32)
+    alpha = np.radians(-10)
+    rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                               [np.sin(alpha), np.cos(alpha)]], dtype=np.float32)
+    setOfPoints -= np.array([x, y], dtype = np.float32)
+    startingPoints = np.matmul(rotationMatrix, setOfPoints.T)
+
+    beta = np.radians(beta)
+    clockwiseRotationMatrix = np.array([[np.cos(beta), np.sin(beta)],
+                                        [-np.sin(beta), np.cos(beta)]], dtype=np.float32)
+    clockwiseRotatedPoints = np.matmul(clockwiseRotationMatrix, startingPoints)
+
+    counterclockwiseRotationMatrix = clockwiseRotationMatrix.T
+    counterclockwiseRotatedPoints = np.matmul(counterclockwiseRotationMatrix, clockwiseRotatedPoints)
+
+    startingPoints = startingPoints.T
+    startingPoints += np.array([x, y], dtype = np.float32)
+    startingPoints = np.around(startingPoints, 0)
+
+    counterclockwiseRotatedPoints = counterclockwiseRotatedPoints.T
+    counterclockwiseRotatedPoints += np.array([x, y], dtype = np.float32)
+    counterclockwiseRotatedPoints = np.around(counterclockwiseRotatedPoints, 0)
+
+    assert np.all(startingPoints == counterclockwiseRotatedPoints)
+
+
+
+
+
+
 
 
 

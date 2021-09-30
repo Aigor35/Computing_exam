@@ -1,3 +1,77 @@
+"""
+Objective
+---------
+This program contains all the tests relative
+to the file Virtual_face_motion.py
+The framework used to run the tests is pytest.
+In order to increase the readability of the code,
+the name of each unit test follows a specific format, that is
+"test"_"function to be tested"_"given parameters or specific condition to be tested"_"expected result".
+As for the property based tests, they follow another format, namely
+"test"_"function to be tested"_"property to be tested"
+
+Needed libraries and subpackages
+--------------------------------
+hypothesis.extra.numpy
+pytest
+vedo
+hypothesis.given
+hypothesis.strategies
+hypothesis.settings
+Virtual_face_motion
+numpy
+cv2
+
+Needed files with their path
+----------------------------
+Models/STL_Head.stl
+
+Tests
+-----
+test_getFocalLength_giveParametersEqualToOne_returnOne()
+test_getFocalLength_giveSpecificValues_returnSpecificResult()
+test_getFocalLength_giveRefAreaEqualToZero_raiseZeroDivisionError()
+test_getFocalLength_giveRefDistanceLowerThanZero_raiseValueError()
+test_getFocalLength_giveRefAreaLowerThanZero_raiseValueError()
+test_getFocalLength_giveRefDetectedAreaLowerThanZero_raiseValueError()
+test_getFocalLength_giveRefDistanceEqualToNan_raiseValueError()
+test_getFocalLength_giveRefAreaEqualToNan_raiseValueError()
+test_getFocalLength_giveRefDetectedAreaEqualToNan_raiseValueError()
+test_getFocalLength_giveRefDistanceEqualToInf_raiseValueError()
+test_getFocalLength_giveRefAreaEqualToInf_raiseValueError()
+test_getFocalLength_giveRefDetectedAreaEqualToInf_raiseValueError()
+test_getFocalLength_giveRefDistanceNotNumerical_raiseTypeError()
+test_getFocalLength_giveRefAreaNotNumerical_raiseTypeError()
+test_getFocalLength_giveRefDetectedAreaNotNumerical_raiseTypeError()
+test_getFocalLength_returnsOnlyNumericalValues(float, float, float)
+test_getDistance_isInverseOf_getFocalLength(float, float, int, int, int, int)
+test_getFocalLength_isInverseOf_getDistance(float, float, int, int, int, int)
+test_getCmOverPixelsRatio_giveParametersEqualToOne_returnOne()
+test_getCmOverPixelsRatio_giveSpecificValues_returnSpecificResult()
+test_getDistance_giveEmptyBoxPoints_raiseValueError()
+test_getCmOverPixelsRatio_giveBoxPointsContainingNan_raiseValueError()
+test_getCmOverPixelsRatio_giveBoxPointsContainingInf_raiseValueError()
+test_manageTrackedPoints_dataStoredCorrectly(int, int)
+test_manageTrackedPoints_dataResetCorrectly(int, int, float, float, float)
+test_checkIfInsideBoundary_ifInsideDoNothing()
+test_checkIfInsideBoundary_ifPointIsFurtherThanMaxXBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointIsFurtherThanMaxYBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointTouchesMaxXBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointTouchesMaxYBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointIsFurtherThanMinXBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointIsFurtherThanMinYBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointTouchesMinXBoundary_ResetData()
+test_checkIfInsideBoundary_ifPointTouchesMinYBoundary_ResetData()
+test_checkIfInsideBoundary_giveNanValue_raiseValueError()
+test_checkIfInsideBoundary_giveInfiniteValue_raiseValueError()
+test_checkIfInsideBoundary_generateBoxPointInsideBoundary_doNothing(numpy.array, numpy.array)
+test_moveFace_giveSpecificValues_returnSpecificResult()
+test_getRotationAngle_giveSpecificValues_rotateFaceWithSpecificAngle()
+test_getRotationAngle_giveEqualRectangles_returnZero()
+test_getRotationAngle_giveRotationAngleGraterThan60Degrees_returnZero()
+test_getRotationAngle_rotateRectangleCounterclockwiseAndClockwiseBySameAngle_obtainAgainInitialRectangle(int, int, float, float, int)
+test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle_obtainAgainInitialRectangle(int, int, float, float, int)
+"""
 import hypothesis.extra.numpy
 import pytest
 import vedo
@@ -7,9 +81,6 @@ from hypothesis import settings
 import Virtual_face_motion as vfm
 import numpy as np
 import cv2 as cv
-
-
-
 
 
 
@@ -267,7 +338,7 @@ def test_manageTrackedPoints_dataResetCorrectly(x, y, xPos, yPos, zPos):
 
 
 
-def test_checkIfInsideBoundary_ifInisdeDoNothing():
+def test_checkIfInsideBoundary_ifInsideDoNothing():
     vfm.pointSelected = True
     vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
     newPoints = np.array([[1., 1.],
@@ -596,21 +667,3 @@ def test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle
     counterclockwiseRotatedPoints = np.around(counterclockwiseRotatedPoints, 0)
 
     assert np.all(startingPoints == counterclockwiseRotatedPoints)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

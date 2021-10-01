@@ -12,15 +12,12 @@ As for the property based tests, they follow another format, namely
 
 Needed libraries and subpackages
 --------------------------------
-hypothesis.extra.numpy
+hypothesis
 pytest
 vedo
-hypothesis.given
-hypothesis.strategies
-hypothesis.settings
 Virtual_face_motion
 numpy
-cv2
+opencv-python
 
 Needed files with their path
 ----------------------------

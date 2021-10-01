@@ -72,9 +72,7 @@ How to use the program:
 Needed libraries and subpackages
 --------------------------------
 vedo
-vedo.Plotter
-vedo.Mesh
-cv2
+opencv-python
 numpy
 
 Needed files with their path

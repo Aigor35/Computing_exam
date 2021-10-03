@@ -65,6 +65,12 @@ How to use the program:
     move the virtual head according to its movements.
     If the user selects by mistake a point, they can
     delete the points selected by pressing the right mouse button.
+    Sometimes the first selected point get misplaced by the
+    tracking algorithm immediately after the selection.
+    If this happens, the user has to press the right mouse button
+    and reselect the points.
+    This problem can happen only for the first point, and it can
+    only happen immediately after the selection.
     The points will also be deleted if the ROI goes outside the
     reach of the camera.
     To stop the program the user has to hold down the 'q' key.
@@ -446,8 +452,7 @@ if __name__ == "__main__":
 
     cap.release()
     cv.destroyAllWindows()
-    vedo.plotter.closePlotter()
-    vedo.closeWindow()
+    vedo.Plotter.close(plotter)
 
 
 

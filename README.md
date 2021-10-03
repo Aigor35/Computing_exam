@@ -1,6 +1,5 @@
 # Computing_exam
-Objective
----------
+
 The objective of this project is writing a program able to mimic
 the movements of the user's face along x, y and z axis
 as well as the rotation of the user's face around the axis perpendicular

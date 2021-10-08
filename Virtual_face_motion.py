@@ -87,19 +87,150 @@ Models/STL_Head.stl
 
 Functions
 ---------
-manageTrackedPoints(int, int, int, int, params)
+manageTrackedPoints(int, int, int, int, params) -> None
 getFocalLength(float, float, float) -> float
 getCmOverPixelsRatio(float, numpy.array) -> float
 getDistance(float, float) -> float
-moveFace(numpy.array, numpy.array, float, float)
-checkIfInsideBoundary(numpy.array, int, int)
+moveFace(numpy.array, numpy.array, float, float) -> None
+checkIfInsideBoundary(numpy.array, int, int) -> None
 getRotationAngle(tuple, tuple) -> float
-showFacePosition(vedo.Mesh)
+showFacePosition(vedo.Mesh) -> None
 """
 import vedo
 from vedo import Plotter, Mesh
 import cv2 as cv
 import numpy as np
+
+
+
+class dataCluster():
+    """
+    The dataCluster class allows the user to generate objects representing
+    exactly clusters of data, as the name of the class suggests.
+    More precisely, the instances of the class, through its arguments,
+    can store information about the points selected by the user
+    and about the virtual face managed by the program.
+
+    Attributes
+    ----------
+    :attribute pointSelected: bool
+        this attribute's value is False if no tracking point has been selected yet
+        by the user, and True otherwise
+    :attribute oldPoints: numpy.array object
+        set of points tracked by the program.
+        The type of the points' coordinates is numpy.float32
+    : attribute faceMesh: vedo.Mesh object
+        a mesh object with the shape of a human head.
+        The object is stored inside the "Models" folder
+
+    Methods
+    -------
+    getPointSelected(self) -> bool
+    updatePointSelected(self, boolean) -> None
+    getOldPoints(self) -> numpy.array
+    updateOldPoints(self, numpy.array) -> None
+    overwriteOldPoints(self, numpy.array) -> None
+    getFaceMesh(self) -> vedo.Mesh
+    updateFaceMesh(self, vedo.Mesh) -> None
+    resetCluster(self) -> None
+    """
+    pointSelected = False
+    oldPoints = np.array([[]], dtype=np.float32)
+    faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+    def getPointSelected(self):
+        """
+        Returns the value of the attribute pointSelected.
+
+        :return: bool
+        """
+        return self.pointSelected
+
+    def updatePointSelected(self, newValue):
+        """
+        Updates the value of the attribute pointSelected.
+
+        Parameters
+        ----------
+        :param newValue: bool
+            new value to be assigned to pointSelected
+
+        :return:
+            does not return anything.
+        """
+        self.pointSelected = newValue
+
+    def getOldPoints(self):
+        """
+        Returns the set of currently tracked points oldPoints.
+
+        :return: numpy.array object
+        """
+        return self.oldPoints
+
+    def updateOldPoints(self, newPoint):
+        """
+        Adds a new point to the set of currently tracked points.
+
+        Parameters
+        ----------
+        :param newPoint: numpy.array object
+            new point to be added to the set.
+            Its shape should be (1,2)
+
+        :return:
+            does not return anything.
+        """
+        self.oldPoints = np.append(self.oldPoints, [[np.float32(newPoint[0]), np.float32(newPoint[1])]])
+        self.oldPoints = np.reshape(self.oldPoints, (int(len(self.oldPoints.T) / 2), 2))
+
+    def overwriteOldPoints(self, newSetOfPoints):
+        """
+        Overwrites the set of currently tracked points.
+
+        Parameters
+        ----------
+        :param newSetOfPoints: numpy.array object
+            new set of points that will replace the old set of points.
+            The type of the elements should be numpy.float32
+
+        :return:
+            does not return anything
+        """
+        self.oldPoints = np.copy(newSetOfPoints)
+
+    def getFaceMesh(self):
+        """
+        Returns the vedo.Mesh object described by the attribute faceMesh.
+
+        :return: vedo.Mesh object
+        """
+        return self.faceMesh
+
+    def updateFaceMesh(self, newFaceMesh):
+        """
+        Updates the vedo.Mesh object described by the attribute faceMesh.
+
+        Parameters
+        ----------
+        :param newFaceMesh: vedo.Mesh object
+            updated version of the attribute faceMesh
+
+        :return:
+            does not return anything
+        """
+        self.faceMesh = newFaceMesh
+
+    def resetCluster(self):
+        """
+        Resets the instance of the dataCluster class to its initial configuration.
+
+        :return:
+            does not return anything
+        """
+        self.pointSelected = False
+        self.oldPoints = np.array([[]], dtype=np.float32)
+        self.faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
 
 
 
@@ -124,16 +255,11 @@ def manageTrackedPoints(event, x, y, flags, params):
     :return:
         does not return anything
     """
-    global pointSelected, oldPoints, faceMesh
     if event == cv.EVENT_LBUTTONDOWN:
-        pointSelected = True
-        oldPoints = np.append(oldPoints, [[np.float32(x), np.float32(y)]])
-        oldPoints = np.reshape(oldPoints, (int(len(oldPoints.T)/2), 2))
+        params.updatePointSelected(True)
+        params.updateOldPoints([x, y])
     elif event == cv.EVENT_RBUTTONDOWN:
-        pointSelected = False
-        oldPoints = np.array([[]], dtype=np.float32)
-        faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
-
+        params.resetCluster()
 
 
 acceptedTypes = (int, float, np.float32, np.float64)
@@ -229,7 +355,7 @@ def getDistance(focalLength, cmOverPixelsRatio):
 
 
 
-def moveFace(oldPoints, newPoints, focalLength, refArea):
+def moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea):
     """
     Moves the vedo.Mesh object, called faceMesh, according to the
     movement detected by the camera.
@@ -250,7 +376,6 @@ def moveFace(oldPoints, newPoints, focalLength, refArea):
     :return:
         does not return anything
     """
-    global faceMesh
     oldCentroid = np.mean(oldPoints, axis=0)
     newCentroid = np.mean(newPoints, axis=0)
     newRatio = getCmOverPixelsRatio(refArea, newPoints)
@@ -261,6 +386,7 @@ def moveFace(oldPoints, newPoints, focalLength, refArea):
     faceMesh.addPos((newCentroid[0] - oldCentroid[0]) * newRatio,
                     (-newCentroid[1] + oldCentroid[1]) * newRatio,
                     -newDistance + oldDistance)
+    return faceMesh
 
 
 
@@ -337,7 +463,6 @@ def getRotationAngle(oldRectangle, newRectangle):
     A threshold equal to 60 has been chosen since it rejects well all the jumps in value and keeps
     the valid rotation angle differences.
     """
-    global faceMesh
     detectedAngleDifference = -newRectangle[-1]+oldRectangle[-1]
     if abs(detectedAngleDifference) > 60:
         detectedAngleDifference = 0
@@ -369,9 +494,7 @@ def showFacePosition(faceMesh):
 
 
 
-pointSelected = False
-oldPoints = np.array([[]],dtype=np.float32)
-faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
 
 if __name__ == "__main__":
 
@@ -404,8 +527,10 @@ if __name__ == "__main__":
     plotter = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
                         size=(oldFrame.shape[1], oldFrame.shape[0]),interactive=False)
     cv.namedWindow("Frame")
-    cv.setMouseCallback("Frame", manageTrackedPoints)
-    vedo.show(faceMesh, axes=1)
+
+    cluster = dataCluster()
+    vedo.show(cluster.getFaceMesh(), axes=1)
+    cv.setMouseCallback("Frame", manageTrackedPoints, cluster)
 
     while True:
 
@@ -415,6 +540,10 @@ if __name__ == "__main__":
 
         newFrame = cv.flip(newFrame, 1)
         newFrameGray = cv.cvtColor(newFrame, cv.COLOR_BGR2GRAY)
+
+        pointSelected = cluster.getPointSelected()
+        oldPoints = cluster.getOldPoints()
+        faceMesh = cluster.getFaceMesh()
 
         if pointSelected == True:
             newPoints, status, error = cv.calcOpticalFlowPyrLK(oldFrameGray, newFrameGray, oldPoints, None, **lkParams)
@@ -436,11 +565,11 @@ if __name__ == "__main__":
                 if pointSelected == False:
                     continue
 
-                moveFace(oldPoints, newPoints, focalLength, refArea)
+                faceMesh = moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea)
                 faceMesh.rotateY(getRotationAngle(oldRectangle, newRectangle), locally=True)
                 showFacePosition(faceMesh)
 
-            oldPoints = newPoints
+            cluster.overwriteOldPoints(newPoints)
             oldFrameGray = newFrameGray.copy()
 
         cv.imshow("Frame", newFrame)

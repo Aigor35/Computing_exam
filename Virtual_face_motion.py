@@ -135,8 +135,10 @@ class dataCluster():
     resetCluster(self) -> None
     """
     pointSelected = False
+    fourPointsSelected = False
     oldPoints = np.array([[]], dtype=np.float32)
     faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
 
     def getPointSelected(self):
         """
@@ -159,6 +161,12 @@ class dataCluster():
             does not return anything.
         """
         self.pointSelected = newValue
+
+    def getFourPointsSelected(self):
+        return self.fourPointsSelected
+
+    def updateFourPointsSelecte(self, newValue):
+        self.fourPointsSelected = newValue
 
     def getOldPoints(self):
         """
@@ -221,13 +229,16 @@ class dataCluster():
         """
         self.faceMesh = newFaceMesh
 
-    def resetCluster(self):
-        """
-        Resets the instance of the dataCluster class to its initial configuration.
+    def getRefDetectedArea(self):
+        self.fourPointsSelected = True
+        length = np.sqrt((self.oldPoints[0, 0] - self.oldPoints[-1, 0]) ** 2 +
+                         (self.oldPoints[0, 1] - self.oldPoints[-1, 1]) ** 2)
 
-        :return:
-            does not return anything
-        """
+        height = np.sqrt((self.oldPoints[0, 0] - self.oldPoints[1, 0]) ** 2 +
+                         (self.oldPoints[0, 1] - self.oldPoints[1, 1]) ** 2)
+        return length*height
+
+    def resetTrackingData(self):
         self.pointSelected = False
         self.oldPoints = np.array([[]], dtype=np.float32)
         self.faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
@@ -259,10 +270,36 @@ def manageTrackedPoints(event, x, y, flags, params):
         params.updatePointSelected(True)
         params.updateOldPoints([x, y])
     elif event == cv.EVENT_RBUTTONDOWN:
-        params.resetCluster()
+        params.resetTrackingData()
 
 
-acceptedTypes = (int, float, np.float32, np.float64)
+
+def getInputParametersAndCheckThem():
+    print("Welcome.")
+    refLength = 0
+    refHeight = 0
+    refDistance = 0
+    while not refLength:
+        refLength = float(input("Please enter the length, in cm, of the ROI you will define: "))
+        if refLength <= 0:
+            print("The value received is lower or equal to 0, and only values "
+                  "greater than 0 are accepted.")
+            refLength = 0
+    while not refHeight:
+        refHeight = float(input("Please enter the height, in cm, of the ROI you will define: "))
+        if refHeight <= 0:
+            print("The value received is lower or equal to 0, and only values "
+                  "greater than 0 are accepted.")
+            refHeight = 0
+    while not refDistance:
+        refDistance = float(input("Please enter your current distance, in cm, from the camera: "))
+        if refDistance <= 0:
+            print("The value received is lower or equal to 0, and only values "
+                  "greater than 0 are accepted.")
+            refDistance = 0
+    return refLength, refHeight, refDistance
+
+
 
 def getFocalLength(refDistance, refArea, refDetectedArea):
     """
@@ -290,16 +327,6 @@ def getFocalLength(refDistance, refArea, refDetectedArea):
         TypeError: if one of the argument isn't int, float, np.float32 or np.float64
 
     """
-    if (refDistance < 0 or refArea < 0 or refDetectedArea < 0):
-        raise ValueError("One of the reference values is negative.")
-    elif refArea == 0:
-        raise ZeroDivisionError("The reference area cannot be equal to zero.")
-    elif (np.isnan(refDistance) or np.isnan(refArea) or np.isnan(refDetectedArea)):
-        raise ValueError("Nan cannot be a reference value.")
-    elif (np.isinf(refDistance) or np.isinf(refArea) or np.isinf(refDetectedArea)):
-        raise ValueError("Infinity cannot be a reference value.")
-    elif (not type(refDistance) in acceptedTypes or not type(refArea) in acceptedTypes or not type(refDetectedArea) in acceptedTypes):
-        raise TypeError("Only numerical values are accepted as reference.")
     return refDistance*np.sqrt(refDetectedArea/refArea)
 
 
@@ -498,17 +525,10 @@ def showFacePosition(faceMesh):
 
 if __name__ == "__main__":
 
-    print("Welcome.")
-    refLength = float(input("Please enter the length, in cm, of the ROI you will define: "))
-    refHeight = float(input("Please enter the height, in cm, of the ROI you will define: "))
-    refDetectedLength = float(input("Please enter the length, in pixels, of the ROI as seen by the camera: "))
-    refDetectedHeight = float(input("Please enter the height, in pixels, of the ROI as seen by the camera: "))
-    refDistance = float(input("Please enter the distance, in cm, to which the measurements in pixels refer: "))
+    refLength, refHeight, refDistance = getInputParametersAndCheckThem()
 
     refArea = refLength * refHeight
-    refDetectedArea = refDetectedLength * refDetectedHeight
-
-    focalLength = getFocalLength(refDistance, refArea, refDetectedArea)
+    focalLength = 0.
 
     cap = cv.VideoCapture(0)
 
@@ -559,6 +579,10 @@ if __name__ == "__main__":
             cv.drawContours(newFrame, [newBox], 0, (0, 255, 0))
 
             if len(newPoints)>3:
+
+                if not cluster.getFourPointsSelected():
+                    refDetectedArea = cluster.getRefDetectedArea()
+                    focalLength = getFocalLength(refDistance, refArea, refDetectedArea)
 
                 checkIfInsideBoundary(newPoints, oldFrame.shape[1], oldFrame.shape[0])
 

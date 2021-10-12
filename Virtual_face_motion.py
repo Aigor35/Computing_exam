@@ -87,14 +87,7 @@ Models/STL_Head.stl
 
 Functions
 ---------
-manageTrackedPoints(int, int, int, int, params) -> None
-getFocalLength(float, float, float) -> float
-getCmOverPixelsRatio(float, numpy.array) -> float
-getDistance(float, float) -> float
-moveFace(numpy.array, numpy.array, float, float) -> None
-checkIfInsideBoundary(numpy.array, int, int) -> None
-getRotationAngle(tuple, tuple) -> float
-showFacePosition(vedo.Mesh) -> None
+
 """
 import vedo
 from vedo import Plotter, Mesh
@@ -171,7 +164,7 @@ class dataCluster():
         """
         return self.oldPoints
 
-    def updateOldPoints(self, newPoint):
+    def trackOneNewPoint(self, newPoint):
         """
         Adds a new point to the set of currently tracked points.
 
@@ -187,7 +180,7 @@ class dataCluster():
         self.oldPoints = np.append(self.oldPoints, [[np.float32(newPoint[0]), np.float32(newPoint[1])]])
         self.oldPoints = np.reshape(self.oldPoints, (int(len(self.oldPoints.T) / 2), 2))
 
-    def overwriteOldPoints(self, newSetOfPoints):
+    def updateOldPoints(self, newSetOfPoints):
         """
         Overwrites the set of currently tracked points.
 
@@ -246,10 +239,10 @@ class dataCluster():
 
 
 
-def manageTrackedPoints(event, x, y, flags, params):
+def manageDataCluster(event, x, y, flags, params):
     if event == cv.EVENT_LBUTTONDOWN:
         params.updatePointSelected(True)
-        params.updateOldPoints([x, y])
+        params.trackOneNewPoint([x, y])
     elif event == cv.EVENT_RBUTTONDOWN:
         params.resetTrackingData()
 
@@ -326,7 +319,7 @@ def checkIfInsideBoundary(clusterOfData, boxPoints, windowWidth, windowLength):
     maxBoundary = np.full((4, 2), [windowWidth, windowLength])
     minBoundary = np.full((4,2), [0,0])
     if (np.any(boxPoints >= maxBoundary) or np.any(boxPoints <= minBoundary)):
-        manageTrackedPoints(event = 2, x = 0, y = 0, flags = 2, params = clusterOfData)
+        manageDataCluster(event = 2, x = 0, y = 0, flags = 2, params = clusterOfData)
         print("The tracked ROI has reached the boundary and has been eliminated.\n"
               "Please select a new ROI.")
         pass
@@ -381,7 +374,7 @@ if __name__ == "__main__":
 
     cluster = dataCluster()
     vedo.show(cluster.getFaceMesh(), axes=1)
-    cv.setMouseCallback("Frame", manageTrackedPoints, cluster)
+    cv.setMouseCallback("Frame", manageDataCluster, cluster)
 
     while True:
 
@@ -406,6 +399,7 @@ if __name__ == "__main__":
 
             newBox = cv.boxPoints(newRectangle)
             newBox = np.intp(newBox)
+            print(newBox)
             cv.drawContours(newFrame, [newBox], 0, (0, 255, 0))
 
             if len(newPoints)>3:
@@ -416,16 +410,17 @@ if __name__ == "__main__":
                     refDetectedArea = cluster.getRefDetectedArea()
                     focalLength = getFocalLength(refDistance, refArea, refDetectedArea)
 
-                checkIfInsideBoundary(cluster, newPoints, oldFrame.shape[1], oldFrame.shape[0])
+                checkIfInsideBoundary(cluster, newBox, oldFrame.shape[1], oldFrame.shape[0])
 
                 if not cluster.getPointSelected():
                     continue
 
                 faceMesh = moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea)
                 faceMesh.rotateY(getRotationAngle(oldRectangle, newRectangle), locally=True)
+                cluster.updateFaceMesh(faceMesh)
                 showFacePosition(faceMesh)
 
-            cluster.overwriteOldPoints(newPoints)
+            cluster.updateOldPoints(newPoints)
             oldFrameGray = newFrameGray.copy()
 
         cv.imshow("Frame", newFrame)

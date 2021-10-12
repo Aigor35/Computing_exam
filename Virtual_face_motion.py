@@ -85,9 +85,22 @@ Needed files with their path
 ----------------------------
 Models/STL_Head.stl
 
+Classes
+-------
+dataCluster
+
 Functions
 ---------
-
+manageDataCluster(int, int, int, int, dataCluster) -> None
+checkParameter(float) -> bool
+getInputParameters() -> (float, float, float)
+getFocalLength(float, float, float) -> float
+getCmOverPixelsRatio(float, numpy.array) -> float
+getDistance(float, float) -> float
+moveFace(vedo.Mesh, numpy.array, numpy.array, float, float) -> vedo.Mesh
+checkIfInsideBoundary(dataCluster, numpy.array, int, int) -> None
+getRotationAngle(numpy.array, numpy.array) -> float
+showFacePosition(vedo.Mesh) -> None
 """
 import vedo
 from vedo import Plotter, Mesh
@@ -98,8 +111,8 @@ import numpy as np
 
 class dataCluster():
     """
-    The dataCluster class allows the user to generate objects representing
-    clusters of data, as the name of the class suggests.
+    The dataCluster class, as the name of the class suggests,
+    allows the user to generate objects representing clusters of data.
     More precisely, the instances of the class, through its arguments,
     can store information about the points selected by the user
     and about the virtual face managed by the program.
@@ -121,12 +134,23 @@ class dataCluster():
 
     Methods
     -------
+    getPointSelected(self) -> bool
+    updatePointSelected(self, bool) -> None
+    getFourPointsSelected(self) -> bool
+    updateFourPointsSelected(self, bool) -> None
+    getOldPoints(self) -> numpy.array
+    trackOneNewPoint(self, numpy.array) -> None
+    updateOldPoints(self, numpy.array) -> None
+    getFaceMesh(self) -> vedo.Mesh
+    updateFaceMesh(self, vedo.Mesh) -> None
+    getRefDetectedArea(self) -> float
+    resetTrackingData(self) -> None
     """
+
     pointSelected = False
     fourPointsSelected = False
     oldPoints = np.array([[]], dtype=np.float32)
     faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
-
 
     def getPointSelected(self):
         """
@@ -145,15 +169,29 @@ class dataCluster():
         :param newValue: bool
             new value to be assigned to pointSelected
 
-        :return:
-            does not return anything.
+        :return: None
         """
         self.pointSelected = newValue
 
     def getFourPointsSelected(self):
+        """
+        Returns the value of the attribute fourPointsSelected.
+
+        :return: bool
+        """
         return self.fourPointsSelected
 
     def updateFourPointsSelected(self, newValue):
+        """
+        Updates the value of the parameter fourPointsSelected.
+
+        Parameters
+        ----------
+        :param newValue: bool
+            new value to be assigned to fourPointsSelected
+
+        :return: None
+        """
         self.fourPointsSelected = newValue
 
     def getOldPoints(self):
@@ -174,15 +212,14 @@ class dataCluster():
             new point to be added to the set.
             Its shape should be (1,2)
 
-        :return:
-            does not return anything.
+        :return: None
         """
         self.oldPoints = np.append(self.oldPoints, [[np.float32(newPoint[0]), np.float32(newPoint[1])]])
         self.oldPoints = np.reshape(self.oldPoints, (int(len(self.oldPoints.T) / 2), 2))
 
     def updateOldPoints(self, newSetOfPoints):
         """
-        Overwrites the set of currently tracked points.
+        Updates the set of currently tracked points.
 
         Parameters
         ----------
@@ -190,8 +227,7 @@ class dataCluster():
             new set of points that will replace the old set of points.
             The type of the elements should be numpy.float32
 
-        :return:
-            does not return anything
+        :return: None
         """
         self.oldPoints = np.copy(newSetOfPoints)
 
@@ -212,12 +248,19 @@ class dataCluster():
         :param newFaceMesh: vedo.Mesh object
             updated version of the attribute faceMesh
 
-        :return:
-            does not return anything
+        :return: None
         """
         self.faceMesh = newFaceMesh
 
     def getRefDetectedArea(self):
+        """
+        Returns the reference area that will be used through the program
+        to calculate the movement along the z axis.
+        This area is defined as the smallest rectangle containing the first
+        four points selected by the user.
+
+        :return: float
+        """
         rectangle = cv.minAreaRect(self.oldPoints)
         box = cv.boxPoints(rectangle)
         box = np.intp(box)
@@ -233,6 +276,11 @@ class dataCluster():
         return refDetectedArea
 
     def resetTrackingData(self):
+        """
+        Reset the values of the attributes pointSelected, oldPoints and faceMesh.
+
+        :return: None
+        """
         self.pointSelected = False
         self.oldPoints = np.array([[]], dtype=np.float32)
         self.faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
@@ -240,6 +288,27 @@ class dataCluster():
 
 
 def manageDataCluster(event, x, y, flags, params):
+    """
+    Manages the information stored inside an instance of the class dataCluster
+    according to the mouse inputs of the user.
+
+    Parameters
+    ----------
+    :param event: int
+        one of the cv::MouseEventTypes constants; it's used to describe the detected event
+    :param x: int
+        the x coordinate of the mouse event
+    :param y: int
+        the y coordinate of the mouse event
+    :param flags: int
+        one of the cv::MouseEventFlags constants; it's used to describe the detected event
+    :param params: dataCluster
+        the last argument of this function represents all parameters that the programmer
+        needs to pass to the function.
+        In this specific program, the passed argument is an instance of the dataCluster class.
+
+    :return: None
+    """
     if event == cv.EVENT_LBUTTONDOWN:
         params.updatePointSelected(True)
         params.trackOneNewPoint([x, y])
@@ -248,44 +317,105 @@ def manageDataCluster(event, x, y, flags, params):
 
 
 
-def checkParameter(parameter):
-    if parameter <= 0:
-        print("The value received is lower or equal to 0, and only values "
-              "greater than 0 are accepted.")
-        return False
-    elif (np.isnan(parameter) or np.isinf(parameter)):
-        print("The value received is inf or nan, and only finite values "
-              "greater than 0 are accepted.")
-        return False
-    return True
+def checkString(string):
+    """
+    Check if the string received as argument can be interpreted as a floating number,
+    and if said floating number is equal to 0, negative, infinite or nan.
+
+    Parameters
+    ----------
+    :param string: str
+        string object representing the user's keyboard input.
+
+    :return: bool,float
+        if the received string is valid, the function returns True,float(string)
+        otherwise it returns False,0
+    """
+    try:
+        value = float(string)
+        if value <= 0:
+            print("The value received is lower or equal to 0, and only values "
+                  "greater than 0 are accepted.")
+            return False, 0
+        elif (np.isnan(value) or np.isinf(value)):
+            print("The value received is inf or nan, and only finite values "
+                  "greater than 0 are accepted.")
+            return False, 0
+    except ValueError:
+        print("The received input cannot be interpreted as a floating number.")
+        return False, 0
+    return True, value
 
 
 def getInputParameters():
+    """
+    Asks the user for three inputs, one at a time, and sends them to the function
+    checkString to make sure that they are valid.
+    If they're not, the function will ask for new valid inputs.
+
+    :return: float, float, float
+        the three valid inputs received by the user
+    """
     print("Welcome.")
     refLength = 0.
     refHeight = 0.
     refDistance = 0.
     isTheParameterValid = False
     while not isTheParameterValid:
-        refLength = float(input("Please enter the length, in cm, of the ROI you will define: "))
-        isTheParameterValid = checkParameter(refLength)
+        receivedInput = input("Please enter the length, in cm, of the ROI you will define: ")
+        isTheParameterValid, refLength = checkString(receivedInput)
     isTheParameterValid = False
     while not isTheParameterValid:
-        refHeight = float(input("Please enter the height, in cm, of the ROI you will define: "))
-        isTheParameterValid = checkParameter(refHeight)
+        receivedInput = input("Please enter the height, in cm, of the ROI you will define: ")
+        isTheParameterValid, refHeight = checkString(receivedInput)
     isTheParameterValid = False
     while not isTheParameterValid:
-        refDistance = float(input("Please enter your current distance, in cm, from the camera: "))
-        isTheParameterValid = checkParameter(refDistance)
+        receivedInput = input("Please enter your current distance, in cm, from the camera: ")
+        isTheParameterValid, refDistance = checkString(receivedInput)
     return refLength, refHeight, refDistance
 
 
 def getFocalLength(refDistance, refArea, refDetectedArea):
+    """
+    Calculates the focal length of the camera.
+
+    Parameters
+    ----------
+    :param refDistance: float
+        reference distance, in cm, between the user and the camera.
+        It's the distance at which the user selects the points
+        defining the ROI for the first time.
+    :param refArea: float
+        reference area, in cm^2, of the ROI selected by the user.
+    :param refDetectedArea:
+        reference area, in pixels^2, of the ROI detected by the camera
+        when the user selects the points defining said ROI for
+        the first time.
+
+    :return: float
+        focal length of the camera expressed in pixels
+    """
     return refDistance*np.sqrt(refDetectedArea/refArea)
 
 
 
 def getCmOverPixelsRatio(refArea, boxPoints):
+    """
+    Calculates the ratio between the area of the ROI detected by the camera in pixels^2
+    and the effective area of the ROI in cm^2.
+    This ratio will be used to change unit of measure from pixels to cm.
+
+    Parameters
+    ----------
+    :param refArea: float
+        effective area of the ROI selected in the reference image expressed in cm^2
+    :param boxPoints: numpy.array object
+        set of four points that defines the corners of the ROI;
+        its shape is (4,2) and the type of the elements is numpy.float32
+
+    :return: float
+        the square root of the ratio between areas, expressed in cm/pixels
+    """
     length = np.sqrt((boxPoints[0, 0] - boxPoints[-1, 0]) ** 2 + (boxPoints[0, 1] - boxPoints[-1, 1]) ** 2)
     height = np.sqrt((boxPoints[0, 0] - boxPoints[1, 0]) ** 2 + (boxPoints[0, 1] - boxPoints[1, 1]) ** 2)
     detectedArea = length * height
@@ -294,11 +424,46 @@ def getCmOverPixelsRatio(refArea, boxPoints):
 
 
 def getDistance(focalLength, cmOverPixelsRatio):
+    """
+    Calculates the distance between the user's face tracked through the ROI and the camera.
+
+    Parameters
+    ----------
+    :param focalLength: float
+        the focal length of the camera expressed in pixels
+    :param cmOverPixelsRatio: float
+        the ratio used to convert pixels to cm
+
+    :return: float
+        the distance between face and camera
+    """
     return focalLength*cmOverPixelsRatio
 
 
 
 def moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea):
+    """
+    Moves the vedo.Mesh object, called faceMesh, according to the
+    movement detected by the camera.
+
+    Parameters
+    ----------
+    :param faceMesh
+        the vedo.Mesh object that mimics the movements of the user's face
+    :param oldPoints: numpy.array object
+        set of four points that defines the corners of the ROI in the previous frame;
+        its shape is (4,2) and the type of the elements is numpy.float32
+    :param newPoints: numpy.array object
+        set of four points that defines the corners of the ROI in the current frame;
+        its shape is (4,2) and the type of the elements is numpy.float32
+    :param focalLength: float
+        the focal length of the camera expressed in pixels
+    :param refArea: float
+        effective area of the ROI selected in the reference image expressed in cm^2
+
+    :return: vedo.Mesh
+        the object faceMesh with its position updated
+    """
     oldCentroid = np.mean(oldPoints, axis=0)
     newCentroid = np.mean(newPoints, axis=0)
     newRatio = getCmOverPixelsRatio(refArea, newPoints)
@@ -314,6 +479,26 @@ def moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea):
 
 
 def checkIfInsideBoundary(clusterOfData, boxPoints, windowWidth, windowLength):
+    """
+    Makes sure that the ROI detected by the camera is still inside the frame window.
+    If the ROI touches the boundaries of the window, all information regarding
+    the tracking are reset and the user has to select a new ROI.
+
+    Parameters
+    ----------
+    :param clusterOfData: dataCluster
+        instance of the dataCluster class containing the information regarding
+        the virtual face
+    :param boxPoints: numpy.array object
+        set of four points that defines the corners of the ROI;
+        its shape is (4,2) and the type of the elements is numpy.float32
+    :param windowWidth: int
+        width of the frame window
+    :param windowLength: int
+        length of the frame window
+
+    :return: None
+    """
     if (np.isnan(np.sum(boxPoints)) or np.isinf(np.sum(boxPoints))):
         raise ValueError("The newly tracked points have some coordinates equal to Nan or infinity.")
     maxBoundary = np.full((4, 2), [windowWidth, windowLength])
@@ -327,6 +512,44 @@ def checkIfInsideBoundary(clusterOfData, boxPoints, windowWidth, windowLength):
 
 
 def getRotationAngle(oldRectangle, newRectangle):
+    """
+    Calculates the difference between the angle of rotation of the tracked
+    ROI in the previous frame and the angle of the ROI in the current frame.
+
+    Parameters
+    ----------
+    :param oldRectangle: tuple
+        a tuple of three elements describing the ROI in the previous frame as a rectangle.
+        The first element is the tuple of floats (x, y) describing the center of mass of the rectangle.
+        The second element is the tuple of floats (width, height) describing the width and the height of the rectangle.
+        The third element is the float describing the rotation angle in a clockwise direction.
+        More information about the angle value can be found in the additional notes.
+    :param newRectangle: tuple
+        a tuple of three elements describing the ROI in the current frame as a rectangle.
+        The first element is the tuple of floats (x, y) describing the center of mass of the rectangle.
+        The second element is the tuple of floats (width, height) describing the width and the height of the rectangle.
+        The third element is the float describing the rotation angle in a clockwise direction.
+        More information about the angle value can be found in the additional notes.
+
+    :return: float
+        the detected rotation angle
+
+    Additional notes
+    ----------------
+    This function assumes that the objects oldRectangle and newRectangle are the results of the
+    function cv2.minAreaRect(), therefore it's built to expect and work with angles
+    defined in the same way as the angles returned by cv2.minAreaRect.
+    More precisely, the function cv2.minAreaRect() takes the four corners of a rectangle and
+    orders them starting from the point with the highest y, then proceeding clockwise.
+    It considers then the line that connects the first and the last point, and an horizontal line.
+    The angle between these two lines is the third element of the tuple returned by cv2.minAreaRect().
+    If two points have the same highest y, then the rightmost point is the starting point.
+    It follows that the angle value always lies in the range [-90,0) and that
+    if the rectangle changes inclination than the angle value could suddenly fall from 0 to -90.
+    For this reason, this function rejects difference values higher than a specific threshold.
+    A threshold equal to 60 has been chosen since it rejects well all the jumps in value and keeps
+    the valid rotation angle differences.
+    """
     detectedAngleDifference = -newRectangle[-1]+oldRectangle[-1]
     if abs(detectedAngleDifference) > 60:
         detectedAngleDifference = 0
@@ -335,6 +558,15 @@ def getRotationAngle(oldRectangle, newRectangle):
 
 
 def showFacePosition(faceMesh):
+    """
+    Prints the position of the vedo.Mesh object called faceMesh on the frame window
+
+    Parameters
+    ----------
+    :param faceMesh: vedo.Mesh object
+        the vedo.Mesh object that mimics the movements of the user's face
+    :return: None
+    """
     position = faceMesh.pos()
     x = np.around(position[0], 2)
     y = np.around(position[1], 2)
@@ -356,8 +588,8 @@ if __name__ == "__main__":
 
     cap = cv.VideoCapture(0)
 
-    lkParams = dict(winSize = (10,10),
-                    maxLevel = 4, # It's the pyramid level; each level denotes a window whose size is half of the previous one.
+    lkParams = dict(winSize = (10, 10),
+                    maxLevel = 4,
                     criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
     success, oldFrame = cap.read()
@@ -369,7 +601,7 @@ if __name__ == "__main__":
     oldFrameGray = cv.cvtColor(oldFrame, cv.COLOR_BGR2GRAY)
 
     plotter = Plotter(axes=dict(xtitle='x axis', ytitle='y axis', ztitle='z axis', yzGrid=False),
-                        size=(oldFrame.shape[1], oldFrame.shape[0]),interactive=False)
+                      size=(oldFrame.shape[1], oldFrame.shape[0]), interactive=False)
     cv.namedWindow("Frame")
 
     cluster = dataCluster()
@@ -389,7 +621,8 @@ if __name__ == "__main__":
         faceMesh = cluster.getFaceMesh()
 
         if cluster.getPointSelected():
-            newPoints, status, error = cv.calcOpticalFlowPyrLK(oldFrameGray, newFrameGray, oldPoints, None, **lkParams)
+            newPoints, status, error = cv.calcOpticalFlowPyrLK(oldFrameGray, newFrameGray,
+                                                               oldPoints, None, **lkParams)
 
             for point in newPoints:
                 cv.circle(newFrame, (int(point[0]), int(point[1])), 5, (0, 255, 0), -1)
@@ -399,7 +632,7 @@ if __name__ == "__main__":
 
             newBox = cv.boxPoints(newRectangle)
             newBox = np.intp(newBox)
-            print(newBox)
+
             cv.drawContours(newFrame, [newBox], 0, (0, 255, 0))
 
             if len(newPoints)>3:

@@ -23,51 +23,6 @@ Needed files with their path
 ----------------------------
 Models/STL_Head.stl
 
-Tests
------
-test_getFocalLength_giveParametersEqualToOne_returnOne()
-test_getFocalLength_giveSpecificValues_returnSpecificResult()
-test_getFocalLength_giveRefAreaEqualToZero_raiseZeroDivisionError()
-test_getFocalLength_giveRefDistanceLowerThanZero_raiseValueError()
-test_getFocalLength_giveRefAreaLowerThanZero_raiseValueError()
-test_getFocalLength_giveRefDetectedAreaLowerThanZero_raiseValueError()
-test_getFocalLength_giveRefDistanceEqualToNan_raiseValueError()
-test_getFocalLength_giveRefAreaEqualToNan_raiseValueError()
-test_getFocalLength_giveRefDetectedAreaEqualToNan_raiseValueError()
-test_getFocalLength_giveRefDistanceEqualToInf_raiseValueError()
-test_getFocalLength_giveRefAreaEqualToInf_raiseValueError()
-test_getFocalLength_giveRefDetectedAreaEqualToInf_raiseValueError()
-test_getFocalLength_giveRefDistanceNotNumerical_raiseTypeError()
-test_getFocalLength_giveRefAreaNotNumerical_raiseTypeError()
-test_getFocalLength_giveRefDetectedAreaNotNumerical_raiseTypeError()
-test_getFocalLength_returnsOnlyNumericalValues(float, float, float)
-test_getDistance_isInverseOf_getFocalLength(float, float, int, int, int, int)
-test_getFocalLength_isInverseOf_getDistance(float, float, int, int, int, int)
-test_getCmOverPixelsRatio_giveParametersEqualToOne_returnOne()
-test_getCmOverPixelsRatio_giveSpecificValues_returnSpecificResult()
-test_getDistance_giveEmptyBoxPoints_raiseValueError()
-test_getCmOverPixelsRatio_giveBoxPointsContainingNan_raiseValueError()
-test_getCmOverPixelsRatio_giveBoxPointsContainingInf_raiseValueError()
-test_manageTrackedPoints_dataStoredCorrectly(int, int)
-test_manageTrackedPoints_dataResetCorrectly(int, int, float, float, float)
-test_checkIfInsideBoundary_ifInsideDoNothing()
-test_checkIfInsideBoundary_ifPointIsFurtherThanMaxXBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointIsFurtherThanMaxYBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointTouchesMaxXBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointTouchesMaxYBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointIsFurtherThanMinXBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointIsFurtherThanMinYBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointTouchesMinXBoundary_ResetData()
-test_checkIfInsideBoundary_ifPointTouchesMinYBoundary_ResetData()
-test_checkIfInsideBoundary_giveNanValue_raiseValueError()
-test_checkIfInsideBoundary_giveInfiniteValue_raiseValueError()
-test_checkIfInsideBoundary_generateBoxPointInsideBoundary_doNothing(numpy.array, numpy.array)
-test_moveFace_giveSpecificValues_returnSpecificResult()
-test_getRotationAngle_giveSpecificValues_rotateFaceWithSpecificAngle()
-test_getRotationAngle_giveEqualRectangles_returnZero()
-test_getRotationAngle_giveRotationAngleGraterThan60Degrees_returnZero()
-test_getRotationAngle_rotateRectangleCounterclockwiseAndClockwiseBySameAngle_obtainAgainInitialRectangle(int, int, float, float, int)
-test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle_obtainAgainInitialRectangle(int, int, float, float, int)
 """
 import hypothesis.extra.numpy
 import pytest
@@ -80,150 +35,266 @@ import numpy as np
 import cv2 as cv
 
 
+def test_dataCluster_pointSelecedRelatedFunctions_correctManagementOfTheAttributePointSelected():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the boolean "True"
+    Expect:
+        the attribute vfm.dataCluster.pointSelected is updated correctly
+        the method vfm.dataCluster.getPointSelected() returns "True"
+    :return:
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    assert cluster.getPointSelected() == True
 
-def test_getFocalLength_giveParametersEqualToOne_returnOne():
-    refDistance = 1
-    refArea = 1
-    refDetectedArea = 1
-    focalLgenth = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-    assert focalLgenth == 1
+
+
+def test_dataCluster_fourPointsSelectedRelatedFunctions_correctManagementOfTheAttributeFourPointsSelected():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the boolean "True"
+    Expect:
+        the attribute vfm.dataCluster.fourPointsSelected is updated correctly
+        the method vfm.dataCluster.getFourPointsSelected() returns "True"
+    :return:
+    """
+    cluster = vfm.dataCluster()
+    cluster.updateFourPointsSelected(True)
+    assert cluster.getFourPointsSelected() == True
+
+
+
+def test_dataCluster_oldPointsRelatedFunctions_correctManagementOfTheAttributeOldPoints():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the numpy.array = [[3, 4]]
+        the numpy.array = [[1, 2],[5, 6]]
+    Expect:
+        the function vfm.dataCluster.trackOneNewPoints() adds a new point to oldPoints
+        the function vfm.dataCluster.updateOldPoints() correctly updates the points stored inside oldPoints
+        the function vfm.dataCluster.getOldPoints() returns the array [[3, 4]]
+            the first time it's called and returns the array [[1, 2], [5, 6]] the second time instead
+    """
+    cluster = vfm.dataCluster()
+    point = np.array([3, 4])
+    cluster.trackOneNewPoint(point)
+    assert np.all(cluster.getOldPoints() == np.array([[3, 4]], dtype = np.float32))
+    cluster.updateOldPoints(np.array([[1, 2], [5, 6]], dtype = np.float32))
+    assert np.all(cluster.getOldPoints() == np.array([[1, 2], [5, 6]], dtype = np.float32))
+
+
+
+def test_dataCluster_faceMeshRelatedFunctions_correctManagementOfTheAttributeFaceMesh():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the numpy.array [1., 2., 3.]
+    Expect:
+        the function vfm.dataCluster.updateFaceMesh() updates correctly the attribute faceMesh
+        the function vfm.dataCluster.getFaceMesh().pos() returns [x, y, z]
+    """
+    cluster = vfm.dataCluster()
+    position = np.array([1., 2., 3.])
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(position[0], position[1], position[2])
+    cluster.updateFaceMesh(faceMesh)
+    assert np.all(cluster.getFaceMesh().pos() == position)
+
+
+
+def test_dataCluster_getRefDetectedArea_returnCorrectValue():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the numpy.array ([[5., 1.], [1., 1.], [1., 5.], [5., 5.]], dtype = np.flaot32)
+    Expect:
+        the function vfm.dataCluster.getRefDetectedArea() returns 16
+    :return:
+    """
+    cluster = vfm.dataCluster()
+    box = np.array([[5., 1.],
+                    [1., 1.],
+                    [1., 5.],
+                    [5., 5.]], dtype = np.float32)
+    cluster.updateOldPoints(box)
+    assert cluster.getRefDetectedArea() == 16
+
+
+
+def test_dataCluster_resetTrackingData_dataResetCorrectly():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the boolean "True"
+        the numpy.array ([[5., 1.], [1., 1.], [1., 5.], [5., 5.]], dtype = np.flaot32)
+        the numpy array [1., 2., 3.]
+    Expect:
+        the three attributes pointSelected, oldPoints and faceMesh are
+        reset to their original values
+    """
+    cluster = vfm.dataCluster()
+    box = np.array([[5., 1.],
+                    [1., 1.],
+                    [1., 5.],
+                    [5., 5.]], dtype=np.float32)
+    position = np.array([1., 2., 3.])
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(box)
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(position[0], position[1], position[2])
+    cluster.updateFaceMesh(faceMesh)
+
+    cluster.resetTrackingData()
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == [0., 0., 0.])
+
+
+@given(x=st.integers(min_value=0, max_value=640),
+       y=st.integers(min_value=0, max_value=480))
+def test_manageDataCluster_dataStoredCorrectly(x, y):
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        an integer x between 0 and 640
+        an integer y between 480
+        the variables event = 1, flags = 1
+    Expect:
+        the function vfm.manageDataCluster() detects a LBUTTONDOWN mouse event
+        the values of the attributes of the vfm.dataCluster instance are updated correctly
+    """
+    cluster = vfm.dataCluster()
+    event = 1
+    flags = 1
+    vfm.manageDataCluster(event, x, y, flags, params = cluster)
+    assert cluster.getPointSelected() == True
+    assert np.all(cluster.getOldPoints() == np.array([[x, y]], dtype = np.float32))
+
+@settings(deadline = 400, max_examples = 50)
+@given(x=st.integers(min_value=0, max_value=640),
+       y=st.integers(min_value=0, max_value=480),
+       xPos=st.floats(allow_nan=False, allow_infinity=False),
+       yPos=st.floats(allow_nan=False, allow_infinity=False),
+       zPos=st.floats(allow_nan=False, allow_infinity=False))
+def test_manageDataCluster_dataResetCorrectly(x, y, xPos, yPos, zPos):
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        the integer x, between 0 and 640
+        the integer y, between 0 and 480
+        three finite floating numbers xPos, yPos, zPos
+        the variables event = 2, flags = 2
+    Expect:
+        the function vfm.manageDataCluster() detects a RBUTTONDOWN mouse event
+        the values of the attributes of the vfm.dataCluster instance are reset correctly
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.trackOneNewPoint(np.array([x, y]))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(xPos, yPos, zPos)
+    cluster.updateFaceMesh(faceMesh)
+    event = 2
+    flags = 2
+
+    vfm.manageDataCluster(event, x, y, flags, params = cluster)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == [0., 0., 0.])
+
+
+
+def test_checkString_giveCorrectString_returnExpectedValue():
+    """
+    Given:
+        the string "45.7"
+    Expect:
+        the function vfm.checkString() returns (True, 45.7)
+    """
+    string = "45.7"
+    assert np.all(vfm.checkString(string) == (True, 45.7))
+
+
+def test_checkString_giveStringContainingNegativeNumber_returnExpectedValue():
+    """
+    Given:
+        the string "-45.7"
+    Expect:
+        the function vfm.checkString() returns (False, 0)
+    """
+    string = "-45.7"
+    assert np.all(vfm.checkString(string) == (False, 0))
+
+
+def test_checkString_giveZero_returnExpectedValue():
+    """
+    Given:
+        the string "0"
+    Expect:
+        the function vfm.checkString() returns (False, 0)
+    """
+    string = "0"
+    assert np.all(vfm.checkString(string) == (False, 0))
+
+
+
+def test_checkString_giveNan_returnExpectedValue():
+    """
+    Given:
+        the string "nan"
+    Expect:
+        the function vfm.checkString() returns (False, 0)
+    :return:
+    """
+    string = "nan"
+    assert np.all(vfm.checkString(string) == (False, 0))
+
+
+
+def test_checkString_giveInf_returnExpectedValue():
+    """
+    Given:
+        the string "inf"
+    Expect:
+        the function vfm.checkString() returns (False, 0)
+    :return:
+    """
+    string = "inf"
+    assert np.all(vfm.checkString(string) == (False, 0))
+
+
+
+def test_checkString_giveInvalidString_returnExpectedValue():
+    """
+    Given:
+        the string "3h"
+    Expect:
+        the function vfm.checkString() returns (False, 0)
+    :return:
+    """
+    string = "3h"
+    assert np.all(vfm.checkString(string) == (False, 0))
 
 
 
 def test_getFocalLength_giveSpecificValues_returnSpecificResult():
-    refDistance = 1
-    refArea = 4
-    refDetectedArea = 16
+    """
+    Given:
+        float variable refDistance = 1.
+        float variable refArea = 4.
+        float variable refDetectedArea = 16.
+    Expect:
+        the function vfm.getFocalLength() returns 2.
+    """
+    refDistance = 1.
+    refArea = 4.
+    refDetectedArea = 16.
     focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-    assert focalLength == 2
-
-
-
-def test_getFocalLength_giveRefAreaEqualToZero_raiseZeroDivisionError():
-    refDistance = 1
-    refArea = 0
-    refDetectedArea = 1
-    with pytest.raises(ZeroDivisionError):
-        vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDistanceLowerThanZero_raiseValueError():
-    refDistance = -1
-    refArea = 1
-    refDetectedArea = 1
-    with pytest.raises(ValueError):
-        vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefAreaLowerThanZero_raiseValueError():
-    refDistance = 1
-    refArea = -1
-    refDetectedArea = 1
-    with pytest.raises(ValueError):
-        vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDetectedAreaLowerThanZero_raiseValueError():
-    refDistance = 1
-    refArea = 1
-    refDetectedArea = -1
-    with pytest.raises(ValueError):
-        vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDistanceEqualToNan_raiseValueError():
-    refDistance = float("nan")
-    refArea = 1
-    refDetectedArea = 1
-    with pytest.raises(ValueError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefAreaEqualToNan_raiseValueError():
-    refDistance = 1
-    refArea = float("nan")
-    refDetectedArea = 1
-    with pytest.raises(ValueError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDetectedAreaEqualToNan_raiseValueError():
-    refDistance = 1
-    refArea = 1
-    refDetectedArea = float("nan")
-    with pytest.raises(ValueError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDistanceEqualToInf_raiseValueError():
-    refDistance = float("inf")
-    refArea = 1
-    refDetectedArea = 1
-    with pytest.raises(ValueError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefAreaEqualToInf_raiseValueError():
-    refDistance = 1
-    refArea = float("inf")
-    refDetectedArea = 1
-    with pytest.raises(ValueError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDetectedAreaEqualToInf_raiseValueError():
-    refDistance = 1
-    refArea = 1
-    refDetectedArea = float("inf")
-    with pytest.raises(ValueError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDistanceNotNumerical_raiseTypeError():
-    refDistance = True
-    refArea = 1
-    refDetectedArea = 1
-    with pytest.raises(TypeError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefAreaNotNumerical_raiseTypeError():
-    refDistance = 1
-    refArea = True
-    refDetectedArea = 1
-    with pytest.raises(TypeError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-
-def test_getFocalLength_giveRefDetectedAreaNotNumerical_raiseTypeError():
-    refDistance = 1
-    refArea = 1
-    refDetectedArea = True
-    with pytest.raises(TypeError):
-        focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-
-
-@given(refDistance = st.floats(min_value = 10**(-10), max_value = 10**5, allow_nan = False,
-                               allow_infinity = False,  exclude_min = True, exclude_max = True),
-       refArea = st.floats(min_value = 10**(-10), max_value = 10**5, allow_nan = False,
-                               allow_infinity = False,  exclude_min = True, exclude_max = True),
-       refDetectedArea = st.floats(min_value = 10**(-10), max_value = 10**5, allow_nan = False,
-                               allow_infinity = False,  exclude_min = True, exclude_max = True))
-def test_getFocalLength_returnsOnlyNumericalValues(refDistance,refArea,refDetectedArea):
-    focalLength = vfm.getFocalLength(refDistance, refArea, refDetectedArea)
-    assert type(focalLength) in vfm.acceptedTypes
+    assert focalLength == 2.
 
 
 
@@ -232,11 +303,22 @@ def test_getFocalLength_returnsOnlyNumericalValues(refDistance,refArea,refDetect
        refArea = st.floats(min_value = 10**(-5), max_value = 10**5, allow_nan = False,
                            allow_infinity = False,  exclude_min = True, exclude_max = True),
        width = st.integers(min_value = 1, max_value = 640),
-       height = st.integers(min_value = 1, max_value = 640),
+       height = st.integers(min_value = 1, max_value = 480),
        x = st.integers(min_value = 0, max_value = 640),
        y = st.integers(min_value = 0, max_value = 480)
        )
 def test_getDistance_isInverseOf_getFocalLength(refDistance, refArea, x, y, width, height):
+    """
+    Given:
+        float variable refDistance, between 10**(-5) and 10**5
+        float variable refArea, between 10**(-5) and 10**5
+        int variable width, between 1 and 640
+        int variable x, between 0 and 640
+        int variable height, between 1 and 480
+        int variable y, between 0 and 480
+    Expect:
+        the function vfm.getDistance() is the inverse of the function vfm.getFocalLength()
+    """
     boxPoints = np.array([[x + width, y], [x, y], [x, y + height], [x + width, y + height]], dtype = np.float32)
     refDetectedArea = width*height
     ratio = vfm.getCmOverPixelsRatio(refArea,boxPoints)
@@ -255,6 +337,17 @@ def test_getDistance_isInverseOf_getFocalLength(refDistance, refArea, x, y, widt
        y = st.integers(min_value = 0, max_value = 480)
        )
 def test_getFocalLength_isInverseOf_getDistance(focalLength, refArea, x, y, width, height):
+    """
+    Given:
+        float variable focalLength, between 10**(-5) and 10**5
+        float variable refArea, between 10**(-5) and 10**5
+        int variable width, between 1 and 640
+        int variable x, between 0 and 640
+        int variable height, between 1 and 480
+        int variable y, between 0 and 480
+    Expect:
+        the function vfm.getFocalLength() is the inverse of the function vfm.getDistance()
+        """
     boxPoints = np.array([[x + width, y],
                           [x, y],
                           [x, y + height],
@@ -265,91 +358,71 @@ def test_getFocalLength_isInverseOf_getDistance(focalLength, refArea, x, y, widt
                                                                    refArea, refDetectedArea), 3)
 
 
-def test_getCmOverPixelsRatio_giveParametersEqualToOne_returnOne():
-    refArea = 1
-    boxPoints = np.array([[1, 0], [0, 0], [0, 1], [1, 1]], dtype = np.float32) # square of area 1
-    ratio = vfm.getCmOverPixelsRatio(refArea, boxPoints)
-    assert ratio == 1
-
-
 
 def test_getCmOverPixelsRatio_giveSpecificValues_returnSpecificResult():
-    refArea = 16
+    """
+    Given:
+        float variable refArea = 16.
+        numpy.array([[2, 0], [0, 0], [0, 2], [2, 2]], dtype = np.float32)
+    Expect:
+        the function vfm.getCmOverPixelsRatio() returns 2
+    """
+    refArea = 16.
     boxPoints = np.array([[2, 0], [0, 0], [0, 2], [2, 2]], dtype = np.float32)
-    ratio = vfm.getCmOverPixelsRatio(refArea, boxPoints)
-    assert ratio == 2
+    assert vfm.getCmOverPixelsRatio(refArea, boxPoints) == 2
 
 
 
-def test_getDistance_giveEmptyBoxPoints_raiseValueError():
-    refArea = 1
-    boxPoints = np.array([])
-    with pytest.raises(ValueError):
-        vfm.getCmOverPixelsRatio(refArea, boxPoints)
+
+#def test_moveFace_giveSpecificValues_returnSpecificResult():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[3.5, 2.5], [2.5, 2.5], [2.5, 3.5], [3.5, 3.5]], dtype = np.float32)
+        numpy.array newPoints = np.array([[5., 3.], [3., 3.], [3., 5.], [5., 5.]], dtype = np.float32)
+        float variable focalLength = 0.5
+        float variable refArea = 16.
+    Expect:
+        the position associated to the attribute faceMesh of the vfm.dataCluster instance
+        is equal to [[2., -2., 1.]]
+    """
+#    cluster = vfm.dataCluster()
+#    oldPoints = np.array([[3.5, 2.5], [2.5, 2.5], [2.5, 3.5], [3.5, 3.5]], dtype=np.float32)
+#    newPoints = np.array([[5., 3.], [3., 3.], [3., 5.], [5., 5.]], dtype = np.float32)
+#    focalLength = 0.5
+#    refArea = 16.
+#    faceMesh = cluster.getFaceMesh()
+#    faceMesh = vfm.moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea)
+#    assert np.all(faceMesh.pos() == np.array([[2., -2., 1.]]))
 
 
 
-def test_getCmOverPixelsRatio_giveBoxPointsContainingNan_raiseValueError():
-    refArea = 1
-    boxPoints = np.array([[1, 0], [0, float("nan")], [0, 1], [1, 1]], dtype = np.float32)
-    with pytest.raises(ValueError):
-        vfm.getCmOverPixelsRatio(refArea, boxPoints)
+#def test_checkIfInsideBoundary_ifInsideDoNothing():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.full((4, 2), 1., dtype=np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() doesn't reset the vfm.dataCluster instance
+    """
+#    cluster = vfm.dataCluster()
+#    cluster.updatePointSelected(True)
+#    cluster.updateOldPoints(np.full((4, 2), 1., dtype=np.float32))
+#    faceMesh = cluster.getFaceMesh()
+#    faceMesh.addPos(5., 5., 5.)
+#    cluster.updateFaceMesh(faceMesh)
+#    windowWidth = 640
+#    windowHeight = 480
+#    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+#    assert cluster.getPointSelected() == True
+#    assert np.all(cluster.getOldPoints() == np.full((4, 2), 1., dtype=np.float32))
+#    assert np.all(cluster.getFaceMesh().pos() == np.array([5., 5., 5.]))
 
 
-
-def test_getCmOverPixelsRatio_giveBoxPointsContainingInf_raiseValueError():
-    refArea = 1
-    boxPoints = np.array([[1, 0], [0, 0], [0, 1], [float("inf"), 1]], dtype = np.float32)
-    with pytest.raises(ValueError):
-        vfm.getCmOverPixelsRatio(refArea, boxPoints)
-
-
-
-@given(x = st.integers(min_value = 0, max_value = 640),
-       y = st.integers(min_value = 0, max_value = 480))
-def test_manageTrackedPoints_dataStoredCorrectly(x, y):
-    vfm.oldPoints = np.array([[]], dtype=np.float32)
-    event = 1
-    flags = 1
-    params = None
-    vfm.manageTrackedPoints(event, x, y, flags, params)
-    assert np.all(vfm.oldPoints == np.array([[x, y]], dtype = np.float32))
-
-
-
-@settings(deadline = 400, max_examples = 50)
-@given(x = st.integers(min_value = 0, max_value = 640),
-       y = st.integers(min_value = 0, max_value = 480),
-       xPos=st.floats(allow_nan=False, allow_infinity=False),
-       yPos=st.floats(allow_nan=False, allow_infinity=False),
-       zPos=st.floats(allow_nan=False, allow_infinity=False))
-def test_manageTrackedPoints_dataResetCorrectly(x, y, xPos, yPos, zPos):
-    vfm.oldPoints = np.array([[x, y]], dtype = np.float32)
-    vfm.faceMesh.addPos(xPos, yPos, zPos)
-    event = 2
-    flags = 2
-    params = None
-    vfm.manageTrackedPoints(event, x, y, flags, params)
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([[0., 0., 0.]]))
-
-
-
-def test_checkIfInsideBoundary_ifInsideDoNothing():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
-                         [1., 1.],
-                         [1., 1.],
-                         [1., 1.]], dtype = np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == True
-    assert np.all(vfm.oldPoints == np.full((4, 2), 1., dtype=np.float32))
-    assert np.all(vfm.faceMesh.pos() == np.array([5., 5., 5.]))
-
-
-
+"""
 def test_checkIfInsideBoundary_ifPointIsFurtherThanMaxXBoundary_ResetData():
     vfm.pointSelected = True
     vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
@@ -520,16 +593,6 @@ def test_checkIfInsideBoundary_generateBoxPointInsideBoundary_doNothing(xCoordin
 
 
 
-def test_moveFace_giveSpecificValues_returnSpecificResult():
-    oldPoints = np.array([[3.5, 2.5], [2.5, 2.5], [2.5, 3.5], [3.5, 3.5]], dtype = np.float32)
-    newPoints = np.array([[5., 3.], [3., 3.], [3., 5.], [5., 5.]], dtype = np.float32)
-    focalLength = 0.5
-    refArea = 16.
-    vfm.moveFace(oldPoints, newPoints, focalLength, refArea)
-    assert np.all(vfm.faceMesh.pos() == np.array([[2., -2., 1.]]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
-
-
 
 def test_getRotationAngle_giveSpecificValues_rotateFaceWithSpecificAngle():
     alpha = np.radians(20)
@@ -664,3 +727,6 @@ def test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle
     counterclockwiseRotatedPoints = np.around(counterclockwiseRotatedPoints, 0)
 
     assert np.all(startingPoints == counterclockwiseRotatedPoints)
+    
+"""
+

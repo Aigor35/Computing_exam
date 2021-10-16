@@ -210,7 +210,7 @@ class dataCluster():
         ----------
         :param newPoint: numpy.array object
             new point to be added to the set.
-            Its shape should be (1,2)
+            Its shape should be (2, )
 
         :return: None
         """
@@ -478,7 +478,7 @@ def moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea):
 
 
 
-def checkIfInsideBoundary(clusterOfData, boxPoints, windowWidth, windowLength):
+def checkIfInsideBoundary(clusterOfData, boxPoints, windowWidth, windowHeight):
     """
     Makes sure that the ROI detected by the camera is still inside the frame window.
     If the ROI touches the boundaries of the window, all information regarding
@@ -501,7 +501,7 @@ def checkIfInsideBoundary(clusterOfData, boxPoints, windowWidth, windowLength):
     """
     if (np.isnan(np.sum(boxPoints)) or np.isinf(np.sum(boxPoints))):
         raise ValueError("The newly tracked points have some coordinates equal to Nan or infinity.")
-    maxBoundary = np.full((4, 2), [windowWidth, windowLength])
+    maxBoundary = np.full((4, 2), [windowWidth, windowHeight])
     minBoundary = np.full((4,2), [0,0])
     if (np.any(boxPoints >= maxBoundary) or np.any(boxPoints <= minBoundary)):
         manageDataCluster(event = 2, x = 0, y = 0, flags = 2, params = clusterOfData)

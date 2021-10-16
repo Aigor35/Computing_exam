@@ -5,10 +5,10 @@ This program contains all the tests relative
 to the file Virtual_face_motion.py
 The framework used to run the tests is pytest.
 In order to increase the readability of the code,
-the name of each unit test follows a specific format, that is
-"test"_"function to be tested"_"given parameters or specific condition to be tested"_"expected result".
-As for the property based tests, they follow another format, namely
-"test"_"function to be tested"_"property to be tested"
+the name of each test describes which function or property
+is tested and which result is expected.
+More information about the parameters passed to the tests
+and the expected results can be found in the tests' documentation.
 
 Needed libraries and subpackages
 --------------------------------
@@ -33,6 +33,27 @@ from hypothesis import settings
 import Virtual_face_motion as vfm
 import numpy as np
 import cv2 as cv
+
+
+
+def test_dataCluster_instanceInitializedCorrectly():
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+    Expect:
+        the attributes of the instance are correctly initialized.
+        This implice that:
+            - the attribute pointSelected is False
+            - the attribute fourPointsSelected is False
+            - the attribute oldPoints is a numpy.array of size 0
+            - the position associated to the attribute faceMesh is equal to the array [0., 0., 0.]
+    """
+    cluster = vfm.dataCluster()
+    assert cluster.pointSelected == False
+    assert cluster.fourPointsSelected == False
+    assert np.size(cluster.oldPoints) == 0
+    assert np.all(cluster.faceMesh.pos() == np.array([0., 0., 0.]))
+
 
 
 def test_dataCluster_pointSelecedRelatedFunctions_correctManagementOfTheAttributePointSelected():
@@ -153,7 +174,7 @@ def test_dataCluster_resetTrackingData_dataResetCorrectly():
     assert np.size(cluster.getOldPoints()) == 0
     assert np.all(cluster.getFaceMesh().pos() == [0., 0., 0.])
 
-
+@settings(deadline = 1000, max_examples = 50)
 @given(x=st.integers(min_value=0, max_value=640),
        y=st.integers(min_value=0, max_value=480))
 def test_manageDataCluster_dataStoredCorrectly(x, y):
@@ -174,7 +195,7 @@ def test_manageDataCluster_dataStoredCorrectly(x, y):
     assert cluster.getPointSelected() == True
     assert np.all(cluster.getOldPoints() == np.array([[x, y]], dtype = np.float32))
 
-@settings(deadline = 400, max_examples = 50)
+@settings(deadline = 1000, max_examples = 50)
 @given(x=st.integers(min_value=0, max_value=640),
        y=st.integers(min_value=0, max_value=480),
        xPos=st.floats(allow_nan=False, allow_infinity=False),
@@ -374,7 +395,7 @@ def test_getCmOverPixelsRatio_giveSpecificValues_returnSpecificResult():
 
 
 
-#def test_moveFace_giveSpecificValues_returnSpecificResult():
+def test_moveFace_giveSpecificValues_returnSpecificResult():
     """
     Given:
         an instance of the vfm.dataCluster class
@@ -386,18 +407,18 @@ def test_getCmOverPixelsRatio_giveSpecificValues_returnSpecificResult():
         the position associated to the attribute faceMesh of the vfm.dataCluster instance
         is equal to [[2., -2., 1.]]
     """
-#    cluster = vfm.dataCluster()
-#    oldPoints = np.array([[3.5, 2.5], [2.5, 2.5], [2.5, 3.5], [3.5, 3.5]], dtype=np.float32)
-#    newPoints = np.array([[5., 3.], [3., 3.], [3., 5.], [5., 5.]], dtype = np.float32)
-#    focalLength = 0.5
-#    refArea = 16.
-#    faceMesh = cluster.getFaceMesh()
-#    faceMesh = vfm.moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea)
-#    assert np.all(faceMesh.pos() == np.array([[2., -2., 1.]]))
+    cluster = vfm.dataCluster()
+    oldPoints = np.array([[3.5, 2.5], [2.5, 2.5], [2.5, 3.5], [3.5, 3.5]], dtype=np.float32)
+    newPoints = np.array([[5., 3.], [3., 3.], [3., 5.], [5., 5.]], dtype = np.float32)
+    focalLength = 0.5
+    refArea = 16.
+    faceMesh = cluster.getFaceMesh()
+    faceMesh = vfm.moveFace(faceMesh, oldPoints, newPoints, focalLength, refArea)
+    assert np.all(faceMesh.pos() == np.array([[2., -2., 1.]]))
 
 
 
-#def test_checkIfInsideBoundary_ifInsideDoNothing():
+def test_checkIfInsideBoundary_ifInsideDoNothing():
     """
     Given:
         an instance of the vfm.dataCluster class
@@ -406,200 +427,350 @@ def test_getCmOverPixelsRatio_giveSpecificValues_returnSpecificResult():
         integer windowWidth = 640
         integer windowHeight = 480
     Expect:
-        the function vfm.checkIfInsideBoundary() doesn't reset the vfm.dataCluster instance
+        the function vfm.checkIfInsideBoundary() doesn't reset the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns True
+            - the method vfm.dataCluster.getOldPoints() returns np.full((4, 2), 1., dtype=np.float32)
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([5., 5., 5.])
     """
-#    cluster = vfm.dataCluster()
-#    cluster.updatePointSelected(True)
-#    cluster.updateOldPoints(np.full((4, 2), 1., dtype=np.float32))
-#    faceMesh = cluster.getFaceMesh()
-#    faceMesh.addPos(5., 5., 5.)
-#    cluster.updateFaceMesh(faceMesh)
-#    windowWidth = 640
-#    windowHeight = 480
-#    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
-#    assert cluster.getPointSelected() == True
-#    assert np.all(cluster.getOldPoints() == np.full((4, 2), 1., dtype=np.float32))
-#    assert np.all(cluster.getFaceMesh().pos() == np.array([5., 5., 5.]))
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.full((4, 2), 1., dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == True
+    assert np.all(cluster.getOldPoints() == np.full((4, 2), 1., dtype=np.float32))
+    assert np.all(cluster.getFaceMesh().pos() == np.array([5., 5., 5.]))
 
 
-"""
+
 def test_checkIfInsideBoundary_ifPointIsFurtherThanMaxXBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[700., 1.],
-                          [1., 1.],
-                          [1., 1.],
-                          [1., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[700., 1.], [1., 1.], [1., 1.], [1., 1.]], dtype = np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[700., 1.],
+                                      [1., 1.],
+                                      [1., 1.],
+                                      [1., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointIsFurtherThanMaxYBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
-                          [1., 1.],
-                          [1., 480.],
-                          [1., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 1.], [1., 1.], [1., 480.], [1., 1.]], dtype = np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 1.],
+                                      [1., 1.],
+                                      [1., 480.],
+                                      [1., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointTouchesMaxXBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
-                          [1., 1.],
-                          [1., 1.],
-                          [640., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 1.], [1., 1.], [1., 1.], [640., 1.]], dtype=np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 1.],
+                                      [1., 1.],
+                                      [1., 1.],
+                                      [640., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointTouchesMaxYBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 480.],
-                          [1., 1.],
-                          [1., 1.],
-                          [1., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 480.], [1., 1.], [1., 1.], [1., 1.]], dtype=np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 480.],
+                                      [1., 1.],
+                                      [1., 1.],
+                                      [1., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointIsFurtherThanMinXBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
-                          [-30., 1.],
-                          [1., 1.],
-                          [1., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 1.], [-30., 1.], [1., 1.], [1., 1.]], dtype=np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 1.],
+                                      [-30., 1.],
+                                      [1., 1.],
+                                      [1., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointIsFurtherThanMinYBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
-                          [1., 1.],
-                          [1., -30.],
-                          [1., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 1.], [1., 1.], [1., -30.], [1., 1.]], dtype=np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 1.],
+                                      [1., 1.],
+                                      [1., -30.],
+                                      [1., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointTouchesMinXBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
-                          [1., 1.],
-                          [0., 1.],
-                          [1., 1.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 1.], [1., 1.], [0., 1.], [1., 1.]], dtype=np.float32)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 1.],
+                                      [1., 1.],
+                                      [0., 1.],
+                                      [1., 1.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
 def test_checkIfInsideBoundary_ifPointTouchesMinYBoundary_ResetData():
-    vfm.pointSelected = True
-    vfm.oldPoints = np.full((4, 2), 1., dtype=np.float32)
-    newPoints = np.array([[1., 1.],
+    """
+    Given:
+        an instance of the vfm.dataCluster class
+        numpy.array oldPoints = np.array([[1., 1.],
                           [1., 1.],
                           [1., 1.],
                           [1., 0.]], dtype=np.float32)
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == False
-    assert vfm.oldPoints.size == 0
-    assert np.all(vfm.faceMesh.pos() == np.array([0., 0., 0.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+        the boolean "True"
+        integer windowWidth = 640
+        integer windowHeight = 480
+    Expect:
+        the function vfm.checkIfInsideBoundary() resets correctly the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns False
+            - the method vfm.dataCluster.getOldPoints() returns an array whose size is 0
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([0., 0., 0.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    cluster.updateOldPoints(np.array([[1., 1.],
+                                      [1., 1.],
+                                      [1., 1.],
+                                      [1., 0.]], dtype=np.float32))
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    windowWidth = 640
+    windowHeight = 480
+    vfm.checkIfInsideBoundary(cluster, cluster.getOldPoints(), windowWidth, windowHeight)
+    assert cluster.getPointSelected() == False
+    assert np.size(cluster.getOldPoints()) == 0
+    assert np.all(cluster.getFaceMesh().pos() == np.array([0., 0., 0.]))
 
 
 
-def test_checkIfInsideBoundary_giveNanValue_raiseValueError():
-    newPoints = np.array([[np.float("nan"), 1.],
-                          [1., 1.],
-                          [1., 1.],
-                          [1., 1.]], dtype=np.float32)
-    with pytest.raises(ValueError):
-        vfm.checkIfInsideBoundary(vfm.oldPoints, 640, 480)
 
 
-
-def test_checkIfInsideBoundary_giveInfiniteValue_raiseValueError():
-    newPoints = np.array([[1., 1.],
-                          [1., np.float("inf")],
-                          [1., 1.],
-                          [1., 1.]], dtype=np.float32)
-    with pytest.raises(ValueError):
-        vfm.checkIfInsideBoundary(vfm.oldPoints, 640, 480)
-
-
-
-@settings(deadline = 400, max_examples = 50)
+@settings(deadline = 800, max_examples = 50)
 @given(xCoordinates = hypothesis.extra.numpy.arrays(int, 4,
                                                elements = st.integers(min_value = 1, max_value= 639)),
        yCoordinates = hypothesis.extra.numpy.arrays(int, 4,
                                                elements = st.integers(min_value = 1, max_value= 479)))
 def test_checkIfInsideBoundary_generateBoxPointInsideBoundary_doNothing(xCoordinates, yCoordinates):
-    vfm.pointSelected = True
-    newPoints = np.array([], dtype = np.float32)
-    vfm.oldPoints = np.full((4, 2), 1., dtype = np.float32)
+    """
+    Given:
+        a numpy.array of four integers ranging from 1 to 639
+        a numpy.array of four integers ranging from 1 to 479
+        the boolean "True"
+        numpy.array oldPoints = np.full((4, 2), 1., dtype = np.float32)
+    Expect:
+        the function vfm.checkIfInsideBoundary() doesn't reset the vfm.dataCluster instance.
+        This implies that:
+            - the method vfm.dataCluster.getPointSelected() returns True
+            - the method vfm.dataCluster.getOldPoints() returns np.full((4, 2), 1., dtype=np.float32)
+            - the method vfm.dataCluster.getFaceMesh.pods() returns np.array([5., 5., 5.])
+    """
+    cluster = vfm.dataCluster()
+    cluster.updatePointSelected(True)
+    oldPoints = np.array([], dtype = np.float32)
     for i in range(0, 4):
-        newPoints = np.append(newPoints, xCoordinates[i])
-        newPoints = np.append(newPoints, yCoordinates[i])
-    newPoints = np.reshape(newPoints, (4, 2))
-    vfm.faceMesh.addPos(5., 5., 5.)
-    vfm.checkIfInsideBoundary(newPoints, 640, 480)
-    assert vfm.pointSelected == True
-    assert np.all(vfm.oldPoints == np.full((4, 2), 1., dtype = np.float32))
-    assert np.all(vfm.faceMesh.pos() == np.array([5., 5., 5.]))
-    vfm.faceMesh = vedo.Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+        oldPoints = np.append(oldPoints, xCoordinates[i])
+        oldPoints = np.append(oldPoints, yCoordinates[i])
+    oldPoints = np.reshape(oldPoints, (4, 2))
+    cluster.updateOldPoints(oldPoints)
+    faceMesh = cluster.getFaceMesh()
+    faceMesh.addPos(5., 5., 5.)
+    cluster.updateFaceMesh(faceMesh)
+    vfm.checkIfInsideBoundary(faceMesh, oldPoints, 640, 480)
+    assert cluster.getPointSelected() == True
+    assert np.all(cluster.getOldPoints() == oldPoints)
+    assert np.all(cluster.getFaceMesh().pos() == np.array([5., 5., 5.]))
 
 
 
 
 def test_getRotationAngle_giveSpecificValues_rotateFaceWithSpecificAngle():
+    """
+    Given:
+        float alpha = np.radians(20), describing the 20° angle expressed in radians
+        numpy.array oldPoints = np.array([[100., 100.], [100., 200.],
+                                        [150., 200.], [150., 100.]], dtype = np.float32)
+        numpy.array rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                                              [np.sin(alpha), np.cos(alpha)]], dtype = np.float32)
+    Expect:
+        the function vfm.getRotationAngle() returns -20
+    """
     alpha = np.radians(20)
     oldPoints = np.array([[100., 100.],
-                             [100., 200.],
-                             [150., 200.],
-                             [150., 100.]], dtype = np.float32)
+                          [100., 200.],
+                          [150., 200.],
+                          [150., 100.]], dtype = np.float32)
     rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
                                [np.sin(alpha), np.cos(alpha)]], dtype = np.float32)
     oldPoints -= 100
@@ -618,6 +789,14 @@ def test_getRotationAngle_giveSpecificValues_rotateFaceWithSpecificAngle():
 
 
 def test_getRotationAngle_giveEqualRectangles_returnZero():
+    """
+    Given:
+        float alpha = np.radians(20), describing the 20° angle expressed in radians
+        numpy.array oldPoints = np.array([[100., 100.], [100., 200.],
+                                        [150., 200.], [150., 100.]], dtype = np.float32)
+    Expect:
+        the function vfm.getRotationAngle() returns 0
+    """
     alpha = np.radians(20)
     oldPoints = np.array([[100., 100.],
                           [100., 200.],
@@ -630,6 +809,17 @@ def test_getRotationAngle_giveEqualRectangles_returnZero():
 
 
 def test_getRotationAngle_giveRotationAngleGraterThan60Degrees_returnZero():
+    """
+    Given:
+        float alpha, describing an angle expressed in radians.
+            Said angle is first defined as np.radians(10), then np.radians(70)
+        numpy.array oldPoints = np.array([[100., 100.], [100., 200.],
+                                        [150., 200.], [150., 100.]], dtype = np.float32)
+        numpy.array rotationMatrix = np.array([[np.cos(alpha), -np.sin(alpha)],
+                                              [np.sin(alpha), np.cos(alpha)]], dtype = np.float32)
+    Expect:
+        the function vfm.getRotationAngle() returns 0
+    """
     alpha = np.radians(10)
     oldPoints = np.array([[100., 100.],
                           [100., 200.],
@@ -659,10 +849,23 @@ def test_getRotationAngle_giveRotationAngleGraterThan60Degrees_returnZero():
 @given(x = st.integers(min_value = 0, max_value = 640),
        y = st.integers(min_value = 0, max_value = 480),
        width = st.integers(min_value = 1, max_value = 640),
-       height = st.integers(min_value = 1, max_value = 640),
+       height = st.integers(min_value = 1, max_value = 480),
        beta = st.integers(min_value = 1, max_value = 80))
 def test_getRotationAngle_rotateRectangleCounterclockwiseAndClockwiseBySameAngle_obtainAgainInitialRectangle(x, y, width,
                                                                                                              height, beta):
+    """
+    Given:
+        int x, between 0 and 640
+        int y, between 0 and 480
+        int width, between 1 and 640
+        int height, between 1 and 480
+        int beta, between 1 and 80
+        float alpha = np.radians(10), describing the 10° angle expressed in radians
+    Expect:
+        if a set of points is rotated counterclockwise and then clockwise by the same angle,
+        the function vfm.getRotationAngle() successfully detects a total rotation angle
+        equal to 0
+    """
     setOfPoints = np.array([[x, y],
                                [x, y + height],
                                [x + width, y + height],
@@ -689,7 +892,10 @@ def test_getRotationAngle_rotateRectangleCounterclockwiseAndClockwiseBySameAngle
     clockwiseRotatedPoints += np.array([x, y], dtype = np.float32)
     clockwiseRotatedPoints = np.around(clockwiseRotatedPoints, 0)
 
-    assert np.all(startingPoints == clockwiseRotatedPoints)
+    startingRectangle = cv.minAreaRect(startingPoints)
+    clockwiseRotatedRectangle = cv.minAreaRect(clockwiseRotatedPoints)
+
+    assert vfm.getRotationAngle(startingRectangle, clockwiseRotatedRectangle) == 0
 
 
 
@@ -700,6 +906,19 @@ def test_getRotationAngle_rotateRectangleCounterclockwiseAndClockwiseBySameAngle
        beta = st.integers(min_value = 1, max_value = 80))
 def test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle_obtainAgainInitialRectangle(x, y, width,
                                                                                                              height, beta):
+    """
+    Given:
+        int x, between 0 and 640
+        int y, between 0 and 480
+        int width, between 1 and 640
+        int height, between 1 and 480
+        int beta, between 1 and 80
+        float alpha = np.radians(-10), describing the -10° angle expressed in radians
+    Expect:
+        if a set of points is rotated clockwise and then counterclockwise by the same angle,
+        the function vfm.getRotationAngle() successfully detects a total rotation angle
+        equal to 0
+    """
     setOfPoints = np.array([[x, y],
                                [x, y + height],
                                [x + width, y + height],
@@ -726,7 +945,9 @@ def test_getRotationAngle_rotateRectangleClockwiseAndCounterclockwiseBySameAngle
     counterclockwiseRotatedPoints += np.array([x, y], dtype = np.float32)
     counterclockwiseRotatedPoints = np.around(counterclockwiseRotatedPoints, 0)
 
-    assert np.all(startingPoints == counterclockwiseRotatedPoints)
-    
-"""
+    startingRectangle = cv.minAreaRect(startingPoints)
+    counterclockwiseRotatedRectangle = cv.minAreaRect(counterclockwiseRotatedPoints)
+
+    assert vfm.getRotationAngle(startingRectangle, counterclockwiseRotatedRectangle) == 0
+
 

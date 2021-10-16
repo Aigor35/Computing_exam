@@ -134,6 +134,7 @@ class dataCluster():
 
     Methods
     -------
+    __init__(self) -> None
     getPointSelected(self) -> bool
     updatePointSelected(self, bool) -> None
     getFourPointsSelected(self) -> bool
@@ -147,10 +148,18 @@ class dataCluster():
     resetTrackingData(self) -> None
     """
 
-    pointSelected = False
-    fourPointsSelected = False
-    oldPoints = np.array([[]], dtype=np.float32)
-    faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+    def __init__(self):
+        """
+        Creates an instance of the dataCluster class and initializes its attributes.
+
+        :return: None
+        """
+        self.pointSelected = False
+        self.fourPointsSelected = False
+        self.oldPoints = np.array([[]], dtype=np.float32)
+        self.faceMesh = Mesh('Models/STL_Head.stl').rotateX(-90).rotateY(180)
+
+
 
     def getPointSelected(self):
         """

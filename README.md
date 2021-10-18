@@ -17,14 +17,14 @@ The program instead stops when the user presses the 'q' key.
 The second file, "Tests.py", contains all the tests to which the
 "Virtual_face_motion.py" file has been subjected.  
 
-How the detection works:
-------------------------
+How the detection works
+-----------------------
 This program detects movement by tracking a ROI defined by the user, and checking frame by frame how the position and the angle of the ROI changed.  
 The user in fact will have to select a set of points that will be tracked.  
 The smallest rectangle containing all the points will define the ROI detected by the program.  
 
-Preliminary steps:
-------------------
+Preliminary steps
+-----------------
 Before starting the program, the user has to decide the ROI in advance and measure its dimensions,  
 as well as the initial distance between themselves and the camera.  
 It's in fact necessary to know the effective height and width of the ROI,
@@ -37,8 +37,8 @@ Alternatively, in order to improve the accuracy, the user can attach small stick
 then select these locations as points of reference.  
 
 
-How to use the program:  
------------------------
+How to use the program  
+----------------------  
 At the start of the program, the user will be asked to enter the width of the ROI they have decided, its height,  
 and the initial distance between the user's face and the camera.  
 All these quantities must be expressed in cm.  

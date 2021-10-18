@@ -71,9 +71,11 @@ and to select these locations as points of reference.
 
 Needed libraries and subpackages
 --------------------------------
-vedo
-opencv-python
-numpy
+vedo  
+opencv-python  
+numpy  
+hypothesis
+pytest
 
 Needed files with their path
 ----------------------------

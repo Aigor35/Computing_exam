@@ -1,7 +1,8 @@
 """
 Objective
 ---------
-This program is built to mimic the movements of a human face.
+The program Virtual_face_motion.py contains the code required to
+mimic the movement of the user's face.
 More precisely, the program is able to detect the movement of the user's face
 along the x, y and z axis, and the rotation of the user's face along
 the axis perpendicular to the screen.
@@ -23,43 +24,40 @@ Preliminary steps:
     Before starting the program, the user has to decide
     the ROI and measure its dimensions in advance,
     as well as the initial distance between themselves and the camera.
-    It's in fact necessary to know the effective length and width of the ROI in cm,
-    the width and length as seen by the camera in pixels,
+    It's in fact necessary to know the effective height and width of the ROI in cm,
     and the distance of the user's face from the camera in cm
-    at the time when these measures were taken.
-    Although the user can select as many point as they want to define the ROI,
-    it is suggested to choose only four points,
-    which should act as the vertices of the rectangle.
-    A good and easy choice for these four points are the pupils and the corners of the lips.
-    These elements in fact are easy to recognize,
-    and it's easy to measure their distance.
-    If the user follows this strategy, the width of the ROI
-    will be approximately equal to the distance between the pupils,
+    when they first select the points for the ROI.
+    The procedure described in the next section suggests
+    to use the pupils and the corners of the lips
+    as points of reference for the ROI.
+    If the user follows this advice,
+    the width of the ROI will be approximately equal to the distance between the pupils,
     and the height of the ROI will be equal to the distance
     between the top of the nose and the mouth.
-    The program Capture_reference_image.py can be used to get a reference image
-    and obtain immediately a measure of the ROI in pixels.
-    In order to improve the accuracy of the program it is suggested
-    to attach small stickers to the face in proximity of the suggested locations,
-    and to select these locations as corners of the ROI.
-    Due to the blinking of the eyes in fact it's very easy
-    for the tracked points to slightly move from the correct position.
-    The same can be said for the lips in case the user speaks or moves the mouth.
+    In alternative, in order to improve the accuracy,
+    the user can attach small stickers to the face in proximity of the suggested locations,
+    and to select these locations as points of reference.
+
 
 How to use the program:
     At the start of the program, the user will be asked
-    to enter the width in cm of the ROI they have decided,
-    the height in cm,
-    the width in pixels of the ROI as seen by the camera,
-    the height in pixels,
-    and the distance in cm at which the measurements in pixels were taken.
-    Once all five quantities are given,
-    two windows will open.
+    to enter the width of the ROI they have decided, its height,
+    and the initial distance between the user's face and the camera.
+    All these quantities must be expressed in cm.
+    Once all three quantities are given, two windows will open.
     One will show the feed from the camera of the pc, the other will show
     a virtual reality containing a simulated human head.
     The user then has to select four or more points in the camera window
     by pressing the left mouse button,
     and the program will immediately start tracking them.
+    Although the user can select more than four points,
+    it's important to notice that the first four points selected will
+    define the reference area in pixels^2 of the ROI,
+    and therefore the first four points should be the ones
+    that define the corners of the ROI.
+    A good and easy choice for these four points are the pupils and the corners of the lips.
+    These elements in fact are easy to recognize,
+    and it's easy to measure their distance.
     Once at least four points have been selected,
     a rectangular ROI will be formed, and the program will
     move the virtual head according to its movements.
@@ -74,6 +72,27 @@ How to use the program:
     The points will also be deleted if the ROI goes outside the
     reach of the camera.
     To stop the program the user has to hold down the 'q' key.
+
+
+
+Known problems
+--------------
+The program is rather sensible to the blinking of the eyes
+and the movements of the lips.
+For this reason, in case the user selects the pupils
+and the corners of the lips as points of reference,
+they should avoid moving the lips as much as possible.
+This problem can be solved by attaching small stickers
+to the face in proximity of the suggested locations,
+and to select these locations as points of reference.
+Another small problems comes from the tracking algorithm itself.
+Sometimes the first point selected is immediately mismatched
+by the tracking algorithm.
+In this case, the user can simply press the right mouse button
+and select the point anew.
+This problem occur only for the first point,
+and only when a new ROI is selected.
+
 
 Needed libraries and subpackages
 --------------------------------
@@ -92,14 +111,14 @@ dataCluster
 Functions
 ---------
 manageDataCluster(int, int, int, int, dataCluster) -> None
-checkParameter(float) -> bool
+checkString(str) -> (bool, float)
 getInputParameters() -> (float, float, float)
 getFocalLength(float, float, float) -> float
 getCmOverPixelsRatio(float, numpy.array) -> float
 getDistance(float, float) -> float
 moveFace(vedo.Mesh, numpy.array, numpy.array, float, float) -> vedo.Mesh
 checkIfInsideBoundary(dataCluster, numpy.array, int, int) -> None
-getRotationAngle(numpy.array, numpy.array) -> float
+getRotationAngle(tuple, tuple) -> float
 showFacePosition(vedo.Mesh) -> None
 """
 import vedo
